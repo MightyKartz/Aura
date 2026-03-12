@@ -8,47 +8,64 @@
   </head>
   <body>
     <main class="popup">
-      <header class="popup__header">
+      <header class="hero">
         <div>
-          <div class="popup__title">Aura</div>
-          <div class="popup__subtitle">不遮剧情，只加氛围</div>
+          <div class="hero__eyebrow">Aura</div>
+          <h1 class="hero__title">陪你看剧的氛围层</h1>
+          <p class="hero__subtitle">不遮剧情，只加氛围</p>
         </div>
-        <label class="switch">
+        <label class="switch switch--lg">
           <input id="enabled" type="checkbox" checked />
           <span class="switch__slider"></span>
         </label>
       </header>
 
-      <section class="card">
-        <div class="row">
-          <span>目标站点</span>
+      <section class="card status-card">
+        <div class="status-card__row">
+          <span class="label">当前站点</span>
           <strong>腾讯视频</strong>
         </div>
-        <div class="row">
-          <span>当前模式</span>
+        <div class="status-card__row">
+          <span class="label">当前剧集</span>
+          <strong id="showTitle">识别中...</strong>
+        </div>
+        <div class="status-card__row">
+          <span class="label">推荐主题</span>
+          <strong id="recommendedTheme">识别中...</strong>
+        </div>
+        <div class="status-card__row">
+          <span class="label">观影模式</span>
           <strong id="modeText">柔和</strong>
         </div>
       </section>
 
       <section class="card">
+        <div class="section-title">主题与强度</div>
         <label class="field">
           <span>氛围强度</span>
           <input id="intensity" type="range" min="0" max="100" value="45" />
+          <div class="field__hint">建议先使用 45~60，专属主题可适当提高。</div>
         </label>
 
         <label class="field">
-          <span>主题</span>
-          <select id="themeSelect">
-            <option value="tencent-default">腾讯默认 Aura</option>
-            <option value="ancient-romance">古装仙侠</option>
-            <option value="urban-romance">都市爱情</option>
-            <option value="suspense">悬疑刑侦</option>
-          </select>
+          <span>手动主题</span>
+          <select id="themeSelect"></select>
+          <div id="themeDescription" class="field__hint">加载中...</div>
         </label>
       </section>
 
+      <section class="card quick-card">
+        <div class="section-title">快捷操作</div>
+        <div class="quick-actions">
+          <button id="cycleThemeButton" class="button">换一套</button>
+          <button id="toggleDebugButton" class="button button--ghost">调试信息</button>
+        </div>
+        <div class="shortcut-hint">快捷键：Ctrl + Shift + A（主） / Option + Command + A（辅助）</div>
+      </section>
+
       <section class="card card--muted">
-        <p id="statusText">等待在腾讯视频页面生效</p>
+        <div id="statusText">等待在腾讯视频页面生效</div>
+        <div id="debugText" class="debug-text hidden"></div>
       </section>
     </main>
     <script type="module" src="./popup.js"></script>

@@ -33,7 +33,7 @@
   },
   "web_accessible_resources": [
     {
-      "resources": ["themes/*"],
+      "resources": ["themes/*", "theme-registry/index.js"],
       "matches": ["https://v.qq.com/*"]
     }
   ]

@@ -2,24 +2,17 @@ const STORAGE_KEY = 'aura:mvp:settings';
 const ROOT_ID = 'aura-root';
 const STATUS_KEY = 'aura:mvp:status';
 
-const THEME_MAP = {
-  'tencent-default': {
-    top: 'themes/tencent-default-top.svg',
-    bottom: 'themes/tencent-default-bottom.svg'
-  },
-  'ancient-romance': {
-    top: 'themes/ancient-romance-top.svg',
-    bottom: 'themes/ancient-romance-bottom.svg'
-  },
-  'urban-romance': {
-    top: 'themes/urban-romance-top.svg',
-    bottom: 'themes/urban-romance-bottom.svg'
-  },
-  'suspense': {
-    top: 'themes/suspense-top.svg',
-    bottom: 'themes/suspense-bottom.svg'
-  }
+let THEME_REGISTRY = {
+  version: 1,
+  defaultThemeId: 'tencent-default',
+  themes: []
 };
+let getThemeById = (themeId) => THEME_REGISTRY.themes.find((theme) => theme.id === themeId) ?? null;
+let getDefaultTheme = () => getThemeById(THEME_REGISTRY.defaultThemeId) ?? THEME_REGISTRY.themes[0];
+let recommendThemeByTitle = (title = '') => getDefaultTheme();
+let resolveActiveTheme = (selectedThemeId, title = '') => getDefaultTheme();
+let registryReady = false;
+let registryLoading = null;
 
 const TENCENT_CONTAINER_SELECTORS = [
   '.txp_player_container',
@@ -43,6 +36,55 @@ const DEFAULT_SETTINGS = {
 let disposed = false;
 let syncTimer = null;
 let observer = null;
+let lastToggleAt = 0;
+
+async function ensureThemeRegistryLoaded() {
+  if (registryReady) return true;
+  if (registryLoading) return registryLoading;
+
+  registryLoading = (async () => {
+    try {
+      const moduleUrl = chrome.runtime.getURL('theme-registry/index.js');
+      const mod = await import(moduleUrl);
+      THEME_REGISTRY = mod.THEME_REGISTRY;
+      getThemeById = mod.getThemeById;
+      getDefaultTheme = mod.getDefaultTheme;
+      recommendThemeByTitle = mod.recommendThemeByTitle;
+      resolveActiveTheme = mod.resolveActiveTheme;
+      registryReady = true;
+      return true;
+    } catch (error) {
+      console.warn('[Aura] failed to load theme registry module, fallback to default theme only:', error);
+      THEME_REGISTRY = {
+        version: 1,
+        defaultThemeId: 'tencent-default',
+        themes: [
+          {
+            id: 'tencent-default',
+            name: '腾讯默认 Aura',
+            category: 'default',
+            description: '适合腾讯视频通用观影场景的基础氛围主题。',
+            match: { keywords: [] },
+            assets: {
+              top: 'themes/tencent-default-top.svg',
+              bottom: 'themes/tencent-default-bottom.svg'
+            },
+            recommendedIntensity: 48,
+            tags: ['通用', '默认', '柔和']
+          }
+        ]
+      };
+      getThemeById = (themeId) => THEME_REGISTRY.themes.find((theme) => theme.id === themeId) ?? null;
+      getDefaultTheme = () => THEME_REGISTRY.themes[0];
+      recommendThemeByTitle = () => THEME_REGISTRY.themes[0];
+      resolveActiveTheme = () => THEME_REGISTRY.themes[0];
+      registryReady = true;
+      return false;
+    }
+  })();
+
+  return registryLoading;
+}
 
 function isExtensionAlive() {
   try {
@@ -53,14 +95,12 @@ function isExtensionAlive() {
 }
 
 function handleSyncEvent() {
-  syncAura();
+  void syncAura();
 }
 
 function handleStorageChange() {
-  syncAura();
+  void syncAura();
 }
-
-let lastToggleAt = 0;
 
 function toggleAuraWithDebounce() {
   const now = Date.now();
@@ -431,15 +471,6 @@ function detectDramaTitle() {
   return '未识别剧名';
 }
 
-function inferThemeFromTitle(title) {
-  const text = title.toLowerCase();
-  if (/[宫|仙|侠|神|凤|君|王|后|令|缘|月|华]/.test(title)) return 'ancient-romance';
-  if (/[罪|案|局|警|疑|谜|追|凶|杀]/.test(title)) return 'suspense';
-  if (/[爱|恋|你|心|约|婚|喜欢|告白|时光]/.test(title)) return 'urban-romance';
-  if (text.includes('love') || text.includes('romance')) return 'urban-romance';
-  return 'tencent-default';
-}
-
 function updateStatus(status) {
   setLocalValue(STATUS_KEY, status);
 }
@@ -453,20 +484,21 @@ function positionLayer(layer, left, top, width, height) {
   layer.style.display = safeHeight > 0 ? 'block' : 'none';
 }
 
-function applyTheme(root, settings, geometry, title, autoTheme) {
-  const chosenTheme = settings.theme === 'tencent-default' ? autoTheme : settings.theme;
-  const theme = THEME_MAP[chosenTheme] ?? THEME_MAP['tencent-default'];
+function applyTheme(root, settings, geometry, title) {
+  const activeTheme = resolveActiveTheme(settings.theme, title);
   const topLayer = root.querySelector('[data-role="top"]');
   const bottomLayer = root.querySelector('[data-role="bottom"]');
   const intensityRatio = Math.max(0, Math.min(1, settings.intensity / 100));
   const fallbackPenalty = geometry.usedContainerFallback ? 0.5 : 1;
-  const opacity = settings.enabled ? Math.min(0.64, (0.12 + intensityRatio * 0.40) * fallbackPenalty) : 0;
+  const recommended = activeTheme?.recommendedIntensity ?? settings.intensity;
+  const recommendationBoost = Math.min(1, recommended / 100);
+  const opacity = settings.enabled ? Math.min(0.64, (0.12 + Math.max(intensityRatio, recommendationBoost * 0.75) * 0.40) * fallbackPenalty) : 0;
   const { rect, top, bottom, mediaRect, symmetricLetterbox } = geometry;
 
-  const topUrl = safeRuntimeUrl(theme.top);
-  const bottomUrl = safeRuntimeUrl(theme.bottom);
+  const topUrl = safeRuntimeUrl(activeTheme.assets.top);
+  const bottomUrl = safeRuntimeUrl(activeTheme.assets.bottom);
   if (!topUrl || !bottomUrl) {
-    return { active: false, chosenTheme, title, top, bottom };
+    return { active: false, theme: activeTheme, top, bottom };
   }
 
   const minBand = geometry.usedContainerFallback ? 20 : 32;
@@ -493,15 +525,16 @@ function applyTheme(root, settings, geometry, title, autoTheme) {
   const active = settings.enabled && (effectiveTop > 6 || effectiveBottom > 6);
   topLayer.classList.toggle('aura-layer--active', active);
   bottomLayer.classList.toggle('aura-layer--active', active);
-  root.dataset.theme = chosenTheme;
+  root.dataset.theme = activeTheme.id;
 
-  return { active, chosenTheme, title, top: effectiveTop, bottom: effectiveBottom };
+  return { active, theme: activeTheme, top: effectiveTop, bottom: effectiveBottom };
 }
 
-function syncAura() {
+async function syncAura() {
   if (disposed || !guardExtensionContext()) return;
 
   try {
+    await ensureThemeRegistryLoaded();
     const root = ensureRoot();
     getSyncValue(STORAGE_KEY, DEFAULT_SETTINGS, (settings) => {
       if (disposed) return;
@@ -509,7 +542,7 @@ function syncAura() {
       const video = findPrimaryVideo();
       const container = findTencentContainer(video);
       const title = detectDramaTitle();
-      const autoTheme = inferThemeFromTitle(title);
+      const recommendedTheme = recommendThemeByTitle(title);
 
       if (!video && !container) {
         updateStatus({
@@ -517,6 +550,8 @@ function syncAura() {
           ready: false,
           message: '未检测到有效视频元素或播放器容器',
           title,
+          autoTheme: recommendedTheme.id,
+          theme: recommendedTheme.id,
           debug: {
             videoCount: document.querySelectorAll('video').length,
             fullscreen: !!document.fullscreenElement,
@@ -533,7 +568,8 @@ function syncAura() {
           ready: false,
           message: '已识别播放器，但暂时无法计算黑边',
           title,
-          autoTheme,
+          autoTheme: recommendedTheme.id,
+          theme: recommendedTheme.id,
           debug: {
             videoCount: document.querySelectorAll('video').length,
             fullscreen: !!document.fullscreenElement,
@@ -543,14 +579,15 @@ function syncAura() {
         return;
       }
 
-      const applied = applyTheme(root, settings, geometry, title, autoTheme);
+      const applied = applyTheme(root, settings, geometry, title);
       updateStatus({
         site: '腾讯视频',
         ready: true,
         message: applied.active ? 'Aura 已生效' : '当前视频黑边不明显或 Aura 已关闭',
         title,
-        autoTheme,
-        theme: applied.chosenTheme,
+        autoTheme: recommendedTheme.id,
+        theme: applied.theme.id,
+        themeName: applied.theme.name,
         letterboxTop: Math.round(applied.top),
         letterboxBottom: Math.round(applied.bottom),
         debug: {
@@ -573,7 +610,7 @@ function syncAura() {
 }
 
 observer = new MutationObserver(() => {
-  syncAura();
+  void syncAura();
 });
 observer.observe(document.documentElement, { childList: true, subtree: true });
 window.addEventListener('resize', handleSyncEvent);
@@ -587,7 +624,7 @@ try {
 }
 
 syncTimer = setInterval(() => {
-  syncAura();
+  void syncAura();
 }, 1200);
 
-syncAura();
+void syncAura();
