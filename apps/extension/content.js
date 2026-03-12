@@ -44,17 +44,39 @@ async function ensureThemeRegistryLoaded() {
 
   registryLoading = (async () => {
     try {
-      const moduleUrl = chrome.runtime.getURL('theme-registry/index.js');
-      const mod = await import(moduleUrl);
-      THEME_REGISTRY = mod.THEME_REGISTRY;
-      getThemeById = mod.getThemeById;
-      getDefaultTheme = mod.getDefaultTheme;
-      recommendThemeByTitle = mod.recommendThemeByTitle;
-      resolveActiveTheme = mod.resolveActiveTheme;
+      const manifestUrl = chrome.runtime.getURL('theme-registry/builtin-themes.json');
+      const response = await fetch(manifestUrl, { cache: 'no-store' });
+      if (!response.ok) throw new Error(`HTTP ${response.status}`);
+      const registry = await response.json();
+      THEME_REGISTRY = registry;
+      getThemeById = (themeId) => THEME_REGISTRY.themes.find((theme) => theme.id === themeId) ?? null;
+      getDefaultTheme = () => getThemeById(THEME_REGISTRY.defaultThemeId) ?? THEME_REGISTRY.themes[0];
+      recommendThemeByTitle = (title = '') => {
+        const normalized = String(title).trim();
+        if (!normalized) return getDefaultTheme();
+        const exactShow = THEME_REGISTRY.themes.find((theme) =>
+          theme.category === 'show' && theme.match.keywords.some((keyword) => normalized.includes(keyword))
+        );
+        if (exactShow) return exactShow;
+        const scored = THEME_REGISTRY.themes
+          .filter((theme) => theme.category !== 'default')
+          .map((theme) => ({
+            theme,
+            score: theme.match.keywords.reduce((sum, keyword) => sum + (normalized.includes(keyword) ? 1 : 0), 0),
+          }))
+          .sort((a, b) => b.score - a.score);
+        return scored[0]?.score > 0 ? scored[0].theme : getDefaultTheme();
+      };
+      resolveActiveTheme = (selectedThemeId, title = '') => {
+        if (selectedThemeId && selectedThemeId !== THEME_REGISTRY.defaultThemeId) {
+          return getThemeById(selectedThemeId) ?? recommendThemeByTitle(title);
+        }
+        return recommendThemeByTitle(title);
+      };
       registryReady = true;
       return true;
     } catch (error) {
-      console.warn('[Aura] failed to load theme registry module, fallback to default theme only:', error);
+      console.warn('[Aura] failed to load theme registry manifest, fallback to default theme only:', error);
       THEME_REGISTRY = {
         version: 1,
         defaultThemeId: 'tencent-default',

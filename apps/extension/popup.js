@@ -1,10 +1,20 @@
-import {
-  THEME_REGISTRY,
-  getThemeById,
-} from './theme-registry/index.js';
-
 const STORAGE_KEY = 'aura:mvp:settings';
 const STATUS_KEY = 'aura:mvp:status';
+let THEME_REGISTRY = { version: 1, defaultThemeId: 'tencent-default', themes: [] };
+
+async function ensureThemeRegistryLoaded() {
+  if (THEME_REGISTRY.themes.length > 0) return THEME_REGISTRY;
+  const url = chrome.runtime.getURL('theme-registry/builtin-themes.json');
+  const response = await fetch(url, { cache: 'no-store' });
+  THEME_REGISTRY = await response.json();
+  return THEME_REGISTRY;
+}
+
+function getThemeById(themeId) {
+  return THEME_REGISTRY.themes.find((theme) => theme.id === themeId) ?? THEME_REGISTRY.themes[0];
+}
+
+} from './theme-registry/index.js';
 
 const enabledInput = document.getElementById('enabled');
 const intensityInput = document.getElementById('intensity');
@@ -142,6 +152,7 @@ document.addEventListener('keydown', (event) => {
   void toggleEnabledFromShortcut();
 });
 
+await ensureThemeRegistryLoaded();
 populateThemeSelect();
 await loadSettings();
 await loadStatus();
