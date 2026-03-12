@@ -1,0 +1,15 @@
+{
+  "compilerOptions": {
+    "target": "ES2022",
+    "module": "ES2022",
+    "moduleResolution": "Bundler",
+    "strict": true,
+    "baseUrl": ".",
+    "paths": {
+      "@shared/*": ["packages/shared/src/*"],
+      "@engine/*": ["packages/aura-engine/src/*"],
+      "@themes/*": ["packages/theme-registry/src/*"]
+    }
+  },
+  "include": ["apps/**/*", "packages/**/*"]
+}

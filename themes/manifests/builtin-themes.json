@@ -1,0 +1,24 @@
+{
+  "themes": [
+    {
+      "id": "tencent-default",
+      "name": "腾讯默认 Aura",
+      "category": "default"
+    },
+    {
+      "id": "ancient-romance",
+      "name": "古装仙侠",
+      "category": "drama"
+    },
+    {
+      "id": "urban-romance",
+      "name": "都市爱情",
+      "category": "drama"
+    },
+    {
+      "id": "suspense",
+      "name": "悬疑刑侦",
+      "category": "drama"
+    }
+  ]
+}

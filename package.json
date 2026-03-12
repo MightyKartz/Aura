@@ -1,0 +1,12 @@
+{
+  "name": "aura-browser-extension",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "Aura Chrome extension MVP for atmospheric letterbox overlays on Tencent Video.",
+  "scripts": {
+    "dev": "node scripts/dev.mjs",
+    "build": "node scripts/build.mjs",
+    "clean": "rm -rf dist"
+  }
+}

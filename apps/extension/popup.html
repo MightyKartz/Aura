@@ -1,0 +1,56 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Aura</title>
+    <link rel="stylesheet" href="./popup.css" />
+  </head>
+  <body>
+    <main class="popup">
+      <header class="popup__header">
+        <div>
+          <div class="popup__title">Aura</div>
+          <div class="popup__subtitle">不遮剧情，只加氛围</div>
+        </div>
+        <label class="switch">
+          <input id="enabled" type="checkbox" checked />
+          <span class="switch__slider"></span>
+        </label>
+      </header>
+
+      <section class="card">
+        <div class="row">
+          <span>目标站点</span>
+          <strong>腾讯视频</strong>
+        </div>
+        <div class="row">
+          <span>当前模式</span>
+          <strong id="modeText">柔和</strong>
+        </div>
+      </section>
+
+      <section class="card">
+        <label class="field">
+          <span>氛围强度</span>
+          <input id="intensity" type="range" min="0" max="100" value="45" />
+        </label>
+
+        <label class="field">
+          <span>主题</span>
+          <select id="themeSelect">
+            <option value="tencent-default">腾讯默认 Aura</option>
+            <option value="ancient-romance">古装仙侠</option>
+            <option value="urban-romance">都市爱情</option>
+            <option value="suspense">悬疑刑侦</option>
+          </select>
+        </label>
+      </section>
+
+      <section class="card card--muted">
+        <p id="statusText">等待在腾讯视频页面生效</p>
+      </section>
+    </main>
+    <script type="module" src="./popup.js"></script>
+  </body>
+</html>
