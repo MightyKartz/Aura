@@ -9,65 +9,131 @@
   <body>
     <main class="popup">
       <header class="hero">
-        <div>
+        <div class="hero__copy">
           <div class="hero__eyebrow">Aura</div>
-          <h1 class="hero__title">陪你看剧的氛围层</h1>
-          <p class="hero__subtitle">不遮剧情，只加氛围</p>
+          <h1 class="hero__title">角落动态主题挂件</h1>
+          <p class="hero__subtitle">轻轻陪看，不抢剧情</p>
         </div>
-        <label class="switch switch--lg">
+        <label class="switch" aria-label="切换 Aura">
           <input id="enabled" type="checkbox" checked />
           <span class="switch__slider"></span>
         </label>
       </header>
 
-      <section class="card status-card">
-        <div class="status-card__row">
-          <span class="label">当前站点</span>
-          <strong>腾讯视频</strong>
+      <section class="panel panel--status">
+        <div class="panel__head">
+          <span id="supportStatus" class="pill pill--neutral">检查中</span>
+          <span id="renderStateBadge" class="state-badge state-badge--pending">待显示</span>
         </div>
-        <div class="status-card__row">
-          <span class="label">当前剧集</span>
-          <strong id="showTitle">识别中...</strong>
-        </div>
-        <div class="status-card__row">
-          <span class="label">推荐主题</span>
-          <strong id="recommendedTheme">识别中...</strong>
-        </div>
-        <div class="status-card__row">
-          <span class="label">观影模式</span>
-          <strong id="modeText">柔和</strong>
+        <h2 id="showTitle" class="show-title">识别中...</h2>
+        <p id="statusText" class="status-copy">等待在腾讯视频播放页生效</p>
+
+        <div class="status-grid">
+          <div class="status-item">
+            <span class="status-item__label">当前皮肤</span>
+            <strong id="currentSkin" class="status-item__value">加载中...</strong>
+          </div>
+          <div class="status-item">
+            <span class="status-item__label">选择来源</span>
+            <span id="skinSourceBadge" class="badge badge--default">默认</span>
+          </div>
+          <div class="status-item">
+            <span class="status-item__label">观影模式</span>
+            <strong id="playbackModeText" class="status-item__value">--</strong>
+          </div>
         </div>
       </section>
 
-      <section class="card">
-        <div class="section-title">主题与强度</div>
+      <section class="panel">
+        <div class="section-title">皮肤与动效</div>
+
         <label class="field">
-          <span>氛围强度</span>
-          <input id="intensity" type="range" min="0" max="100" value="45" />
-          <div class="field__hint">建议先使用 45~60，专属主题可适当提高。</div>
+          <span class="field__label">皮肤模式</span>
+          <select id="themeMode">
+            <option value="auto">自动推荐</option>
+            <option value="manual">手动选择</option>
+          </select>
+          <div id="themeModeHint" class="field__hint">根据剧名和页面标签推荐更合适的皮肤。</div>
         </label>
 
         <label class="field">
-          <span>手动主题</span>
-          <select id="themeSelect"></select>
-          <div id="themeDescription" class="field__hint">加载中...</div>
+          <span class="field__label">手动皮肤</span>
+          <select id="skinSelect"></select>
+          <div id="skinDescription" class="field__hint">加载中...</div>
         </label>
-      </section>
 
-      <section class="card quick-card">
-        <div class="section-title">快捷操作</div>
-        <div class="quick-actions">
-          <button id="cycleThemeButton" class="button">换一套</button>
-          <button id="toggleDebugButton" class="button button--ghost">调试信息</button>
+        <div class="field field--compact">
+          <span class="field__label">动效强度</span>
+          <div class="mode-grid" role="group" aria-label="动效强度">
+            <button class="mode-option" type="button" data-mode="quiet">安静</button>
+            <button class="mode-option" type="button" data-mode="standard">标准</button>
+            <button class="mode-option" type="button" data-mode="lively">活泼</button>
+          </div>
+          <div class="field__hint">建议整集常开时使用标准模式。</div>
         </div>
-        <div class="shortcut-hint">快捷键：Ctrl + Shift + A（主） / Option + Command + A（辅助）</div>
       </section>
 
-      <section class="card card--muted">
-        <div id="statusText">等待在腾讯视频页面生效</div>
-        <div id="debugText" class="debug-text hidden"></div>
+      <section class="panel panel--quiet">
+        <div class="shortcut-row">
+          <span class="shortcut-row__label">快捷键</span>
+          <code class="shortcut-row__value">Win: Ctrl+Shift+A ｜ Mac: Command+Shift+A</code>
+        </div>
+        <details class="debug-panel">
+          <summary>查看调试信息</summary>
+          <div class="detail-list">
+            <div class="detail-row">
+              <span class="detail-label">videoDetected</span>
+              <code id="diagnosticVideoDetected" class="detail-value">--</code>
+            </div>
+            <div class="detail-row">
+              <span class="detail-label">containerSource</span>
+              <code id="diagnosticContainerSource" class="detail-value">--</code>
+            </div>
+            <div class="detail-row">
+              <span class="detail-label">controlsVisible</span>
+              <code id="diagnosticControlsVisible" class="detail-value">--</code>
+            </div>
+            <div class="detail-row">
+              <span class="detail-label">adActive</span>
+              <code id="diagnosticAdActive" class="detail-value">--</code>
+            </div>
+            <div class="detail-row">
+              <span class="detail-label">skinContext</span>
+              <code id="diagnosticSkinContext" class="detail-value">--</code>
+            </div>
+            <div class="detail-row">
+              <span class="detail-label">lastSyncReason</span>
+              <code id="diagnosticLastSyncReason" class="detail-value">--</code>
+            </div>
+            <div class="detail-row">
+              <span class="detail-label">moduleLoadState</span>
+              <code id="diagnosticModuleLoadState" class="detail-value">--</code>
+            </div>
+            <div class="detail-row">
+              <span class="detail-label">registryLoadState</span>
+              <code id="diagnosticRegistryLoadState" class="detail-value">--</code>
+            </div>
+            <div class="detail-row">
+              <span class="detail-label">syncState</span>
+              <code id="diagnosticSyncState" class="detail-value">--</code>
+            </div>
+            <div class="detail-row">
+              <span class="detail-label">errorStage</span>
+              <code id="diagnosticErrorStage" class="detail-value">--</code>
+            </div>
+            <div class="detail-row">
+              <span class="detail-label">errorMessage</span>
+              <code id="diagnosticErrorMessage" class="detail-value">--</code>
+            </div>
+            <div class="detail-row">
+              <span class="detail-label">pageUrl</span>
+              <code id="diagnosticPageUrl" class="detail-value">--</code>
+            </div>
+          </div>
+        </details>
       </section>
     </main>
+
     <script type="module" src="./popup.js"></script>
   </body>
 </html>

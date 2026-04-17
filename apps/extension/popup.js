@@ -1,158 +1,360 @@
-const STORAGE_KEY = 'aura:mvp:settings';
-const STATUS_KEY = 'aura:mvp:status';
-let THEME_REGISTRY = { version: 1, defaultThemeId: 'tencent-default', themes: [] };
+import { sendForceSyncToTab } from './runtime/messages.js';
+import { DEFAULT_SETTINGS, STORAGE_KEY, readSettings, writeSettings } from './runtime/settings.js';
+import { loadSkinRegistry, getDefaultSkin, getSkinById } from './runtime/skin-registry.js';
+import { getSiteSupport } from './runtime/site-adapters.js';
+import { STATUS_KEY, readStatus, RUNTIME_STATES, statusBelongsToUrl } from './runtime/status.js';
 
-async function ensureThemeRegistryLoaded() {
-  if (THEME_REGISTRY.themes.length > 0) return THEME_REGISTRY;
-  const url = chrome.runtime.getURL('theme-registry/builtin-themes.json');
-  const response = await fetch(url, { cache: 'no-store' });
-  THEME_REGISTRY = await response.json();
-  return THEME_REGISTRY;
-}
+let skinRegistry = {
+  version: 1,
+  defaultSkinId: 'cat-default-v1',
+  skins: []
+};
 
-function getThemeById(themeId) {
-  return THEME_REGISTRY.themes.find((theme) => theme.id === themeId) ?? THEME_REGISTRY.themes[0];
-}
-
-} from './theme-registry/index.js';
+let currentSettings = { ...DEFAULT_SETTINGS };
+let currentStatus = null;
+let activeTab = null;
 
 const enabledInput = document.getElementById('enabled');
-const intensityInput = document.getElementById('intensity');
-const themeSelect = document.getElementById('themeSelect');
-const modeText = document.getElementById('modeText');
-const statusText = document.getElementById('statusText');
-const debugText = document.getElementById('debugText');
+const supportStatus = document.getElementById('supportStatus');
+const renderStateBadgeElement = document.getElementById('renderStateBadge');
 const showTitle = document.getElementById('showTitle');
-const recommendedTheme = document.getElementById('recommendedTheme');
-const themeDescription = document.getElementById('themeDescription');
-const cycleThemeButton = document.getElementById('cycleThemeButton');
-const toggleDebugButton = document.getElementById('toggleDebugButton');
+const statusText = document.getElementById('statusText');
+const currentSkin = document.getElementById('currentSkin');
+const skinSourceBadge = document.getElementById('skinSourceBadge');
+const playbackModeText = document.getElementById('playbackModeText');
+const themeModeSelect = document.getElementById('themeMode');
+const themeModeHint = document.getElementById('themeModeHint');
+const skinSelect = document.getElementById('skinSelect');
+const skinDescription = document.getElementById('skinDescription');
+const modeButtons = Array.from(document.querySelectorAll('[data-mode]'));
+const diagnosticVideoDetected = document.getElementById('diagnosticVideoDetected');
+const diagnosticContainerSource = document.getElementById('diagnosticContainerSource');
+const diagnosticControlsVisible = document.getElementById('diagnosticControlsVisible');
+const diagnosticAdActive = document.getElementById('diagnosticAdActive');
+const diagnosticSkinContext = document.getElementById('diagnosticSkinContext');
+const diagnosticLastSyncReason = document.getElementById('diagnosticLastSyncReason');
+const diagnosticModuleLoadState = document.getElementById('diagnosticModuleLoadState');
+const diagnosticRegistryLoadState = document.getElementById('diagnosticRegistryLoadState');
+const diagnosticSyncState = document.getElementById('diagnosticSyncState');
+const diagnosticErrorStage = document.getElementById('diagnosticErrorStage');
+const diagnosticErrorMessage = document.getElementById('diagnosticErrorMessage');
+const diagnosticPageUrl = document.getElementById('diagnosticPageUrl');
 
-let showDebug = false;
-let lastToggleAt = 0;
-
-function matchesToggleShortcut(event) {
-  const key = event.key.toLowerCase();
-  return (event.metaKey && event.altKey && key === 'a') || (event.ctrlKey && event.shiftKey && key === 'a');
+function formatValue(value, fallback = '--') {
+  if (value === null || value === undefined || value === '') return fallback;
+  return String(value);
 }
 
-function intensityToMode(value) {
-  if (value <= 0) return '关闭';
-  if (value < 35) return '轻微';
-  if (value < 70) return '柔和';
-  return '沉浸';
+function formatBoolean(value) {
+  if (value === null || value === undefined) return '--';
+  return value ? 'true' : 'false';
 }
 
-function populateThemeSelect() {
-  themeSelect.innerHTML = '';
-  for (const theme of THEME_REGISTRY.themes) {
-    const option = document.createElement('option');
-    option.value = theme.id;
-    option.textContent = theme.name;
-    themeSelect.appendChild(option);
+function getFallbackSkin() {
+  return getDefaultSkin(skinRegistry);
+}
+
+function getFallbackSkinId() {
+  return getFallbackSkin()?.id || skinRegistry.defaultSkinId || '';
+}
+
+function getDisplaySkinId(status = currentStatus) {
+  if (currentSettings.themeMode === 'manual') {
+    return currentSettings.selectedSkinId || getFallbackSkinId();
   }
+
+  return status?.skinId || getFallbackSkinId();
 }
 
-function renderThemeDescription(themeId) {
-  const theme = getThemeById(themeId) ?? THEME_REGISTRY.themes[0];
-  themeDescription.textContent = `${theme.description} 建议强度：${theme.recommendedIntensity}`;
+function getDisplaySkin(status = currentStatus) {
+  return getSkinById(skinRegistry, getDisplaySkinId(status)) ?? getFallbackSkin();
 }
 
-async function loadSettings() {
-  const result = await chrome.storage.sync.get(STORAGE_KEY);
-  const settings = result[STORAGE_KEY] ?? { enabled: true, intensity: 45, theme: THEME_REGISTRY.defaultThemeId };
-  enabledInput.checked = settings.enabled;
-  intensityInput.value = String(settings.intensity);
-  themeSelect.value = settings.theme;
-  modeText.textContent = intensityToMode(settings.intensity);
-  renderThemeDescription(settings.theme);
+async function getActiveTab() {
+  const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
+  return tab ?? null;
 }
 
-async function loadStatus() {
-  const result = await chrome.storage.local.get(STATUS_KEY);
-  const status = result[STATUS_KEY];
-  if (!status) {
-    showTitle.textContent = '识别中...';
-    recommendedTheme.textContent = '识别中...';
-    statusText.textContent = '等待在腾讯视频页面生效（扩展快捷键：Ctrl+Shift+A；页面/Popup：Option+Command+A 或 Ctrl+Shift+A）';
-    debugText.textContent = '';
+function renderSupportPill(text, tone) {
+  supportStatus.textContent = text;
+  supportStatus.className = `pill ${tone}`;
+}
+
+function renderSourceBadge(source = '') {
+  if (source === 'manual') {
+    skinSourceBadge.className = 'badge badge--manual';
+    skinSourceBadge.textContent = '手动';
     return;
   }
 
-  showTitle.textContent = status.title || '未识别';
-  recommendedTheme.textContent = (getThemeById(status.theme || status.autoTheme || THEME_REGISTRY.defaultThemeId) ?? THEME_REGISTRY.themes[0]).name;
-
-  const userParts = [];
-  if (status.message) userParts.push(status.message);
-  if (typeof status.letterboxTop === 'number' || typeof status.letterboxBottom === 'number') {
-    userParts.push(`黑边上 ${status.letterboxTop ?? 0}px / 下 ${status.letterboxBottom ?? 0}px`);
+  if (source.startsWith('auto')) {
+    skinSourceBadge.className = 'badge badge--auto';
+    skinSourceBadge.textContent = '自动';
+    return;
   }
-  userParts.push('快捷键：Ctrl + Shift + A');
-  statusText.textContent = userParts.join(' ｜ ');
 
-  const debugParts = [];
-  if (status.autoTheme) debugParts.push(`自动推荐：${status.autoTheme}`);
-  if (status.themeName) debugParts.push(`实际主题：${status.themeName}`);
-  if (status.debug?.videoCount !== undefined) debugParts.push(`video: ${status.debug.videoCount}`);
-  if (status.debug?.hasContainer !== undefined) debugParts.push(`容器: ${status.debug.hasContainer ? '已识别' : '未识别'}`);
-  if (status.debug?.intrinsicReady !== undefined) debugParts.push(`元数据: ${status.debug.intrinsicReady ? '已就绪' : '未就绪'}`);
-  if (status.debug?.usedContainerFallback !== undefined) debugParts.push(`容器兜底: ${status.debug.usedContainerFallback ? '是' : '否'}`);
-  if (status.debug?.symmetricLetterbox !== undefined) debugParts.push(`对称黑边: ${status.debug.symmetricLetterbox ? '是' : '否'}`);
-  debugText.textContent = debugParts.join('\n');
-  debugText.classList.toggle('hidden', !showDebug);
+  skinSourceBadge.className = 'badge badge--default';
+  skinSourceBadge.textContent = '默认';
 }
 
-async function saveSettings() {
-  const settings = {
-    enabled: enabledInput.checked,
-    intensity: Number(intensityInput.value),
-    theme: themeSelect.value,
-  };
-  modeText.textContent = intensityToMode(settings.intensity);
-  renderThemeDescription(settings.theme);
-  await chrome.storage.sync.set({ [STORAGE_KEY]: settings });
-  statusText.textContent = '设置已保存，切回腾讯视频页面查看效果（Ctrl+Shift+A / Option+Command+A）';
+function renderRuntimeBadge(status) {
+  let tone = 'pending';
+  let label = '待显示';
+
+  if (!currentSettings.enabled || status?.state === RUNTIME_STATES.DISABLED) {
+    tone = 'inactive';
+    label = '已关闭';
+  } else if (status?.state === RUNTIME_STATES.ERROR) {
+    tone = 'inactive';
+    label = '异常';
+  } else if (status?.renderActive) {
+    tone = 'active';
+    label = '已显示';
+  } else if (status?.state === RUNTIME_STATES.WAITING_CONTAINER) {
+    tone = 'pending';
+    label = '等播放器';
+  } else if (status) {
+    tone = 'inactive';
+    label = '未显示';
+  }
+
+  renderStateBadgeElement.className = `state-badge state-badge--${tone}`;
+  renderStateBadgeElement.textContent = label;
 }
 
-async function toggleEnabledFromShortcut() {
-  const now = Date.now();
-  if (now - lastToggleAt < 300) return;
-  lastToggleAt = now;
-  const result = await chrome.storage.sync.get(STORAGE_KEY);
-  const settings = result[STORAGE_KEY] ?? { enabled: true, intensity: 45, theme: THEME_REGISTRY.defaultThemeId };
-  const next = { ...settings, enabled: !settings.enabled };
-  enabledInput.checked = next.enabled;
-  await chrome.storage.sync.set({ [STORAGE_KEY]: next });
-  statusText.textContent = `Aura 已${next.enabled ? '开启' : '关闭'}（快捷键触发）`;
+function renderModeButtons(mode) {
+  for (const button of modeButtons) {
+    button.classList.toggle('is-active', button.dataset.mode === mode);
+  }
 }
 
-async function cycleTheme() {
-  const current = themeSelect.value;
-  const ids = THEME_REGISTRY.themes.map((theme) => theme.id);
-  const index = ids.indexOf(current);
-  const next = ids[(index + 1 + ids.length) % ids.length];
-  themeSelect.value = next;
-  await saveSettings();
+function populateSkinSelect() {
+  skinSelect.innerHTML = '';
+
+  for (const skin of skinRegistry.skins) {
+    const option = document.createElement('option');
+    option.value = skin.id;
+    option.textContent = skin.name;
+    skinSelect.appendChild(option);
+  }
 }
 
-enabledInput.addEventListener('change', saveSettings);
-intensityInput.addEventListener('input', saveSettings);
-themeSelect.addEventListener('change', saveSettings);
-cycleThemeButton.addEventListener('click', () => void cycleTheme());
-toggleDebugButton.addEventListener('click', () => {
-  showDebug = !showDebug;
-  debugText.classList.toggle('hidden', !showDebug);
-  toggleDebugButton.textContent = showDebug ? '隐藏调试' : '调试信息';
+function renderSkinDescription(skinId) {
+  const skin = getSkinById(skinRegistry, skinId);
+  if (!skin) {
+    skinDescription.textContent = '皮肤信息加载中...';
+    return;
+  }
+
+  const tags = Array.isArray(skin.tags) && skin.tags.length > 0
+    ? `标签：${skin.tags.join(' / ')}`
+    : '';
+  skinDescription.textContent = [skin.description, tags].filter(Boolean).join(' ｜ ');
+}
+
+function updateSkinSelectionUI(status = currentStatus) {
+  const skin = getDisplaySkin(status);
+  if (!skin) return;
+  skinSelect.value = skin.id;
+  renderSkinDescription(skin.id);
+}
+
+function renderThemeModeUI() {
+  themeModeSelect.value = currentSettings.themeMode;
+  skinSelect.disabled = currentSettings.themeMode !== 'manual';
+  themeModeHint.textContent = currentSettings.themeMode === 'manual'
+    ? '手动模式下始终使用指定皮肤。'
+    : '根据剧名和页面标签推荐更合适的皮肤。';
+}
+
+function renderDiagnostics(status) {
+  diagnosticVideoDetected.textContent = formatBoolean(status?.videoDetected);
+  diagnosticContainerSource.textContent = formatValue(status?.containerSource);
+  diagnosticControlsVisible.textContent = formatBoolean(status?.controlsVisible);
+  diagnosticAdActive.textContent = formatBoolean(status?.adActive);
+  diagnosticSkinContext.textContent = formatValue(status?.skinContext);
+  diagnosticLastSyncReason.textContent = formatValue(status?.lastSyncReason);
+  diagnosticModuleLoadState.textContent = formatValue(status?.moduleLoadState);
+  diagnosticRegistryLoadState.textContent = formatValue(status?.registryLoadState);
+  diagnosticSyncState.textContent = formatValue(status?.syncState);
+  diagnosticErrorStage.textContent = formatValue(status?.errorStage);
+  diagnosticErrorMessage.textContent = formatValue(status?.errorMessage);
+  diagnosticPageUrl.textContent = formatValue(status?.pageUrl);
+}
+
+function renderActiveTabState() {
+  const support = getSiteSupport(activeTab?.url || '');
+
+  renderRuntimeBadge(currentStatus);
+  renderDiagnostics(currentStatus);
+  updateSkinSelectionUI(currentStatus);
+
+  if (!activeTab) {
+    renderSupportPill('未找到页面', 'pill--neutral');
+    showTitle.textContent = '等待中...';
+    currentSkin.textContent = getDisplaySkin()?.name || '默认小猫';
+    renderSourceBadge(currentSettings.themeMode === 'manual' ? 'manual' : 'default');
+    playbackModeText.textContent = '--';
+    statusText.textContent = '当前没有可用的活动标签页。';
+    return;
+  }
+
+  if (!support.supported) {
+    renderSupportPill('当前页未适配', 'pill--neutral');
+    showTitle.textContent = '等待腾讯视频';
+    currentSkin.textContent = getDisplaySkin()?.name || '默认小猫';
+    renderSourceBadge(currentSettings.themeMode === 'manual' ? 'manual' : 'default');
+    playbackModeText.textContent = '--';
+    statusText.textContent = 'Aura 当前先稳定支持腾讯视频播放页。';
+    return;
+  }
+
+  if (!support.playback) {
+    renderSupportPill('腾讯视频非播放页', 'pill--inactive');
+    showTitle.textContent = '等待进入播放页';
+    currentSkin.textContent = getDisplaySkin()?.name || '默认小猫';
+    renderSourceBadge(currentSettings.themeMode === 'manual' ? 'manual' : 'default');
+    playbackModeText.textContent = '--';
+    statusText.textContent = '进入播放页后，角落挂件会自动出现。';
+    return;
+  }
+
+  renderSupportPill('腾讯视频已适配', 'pill--supported');
+
+  if (!currentStatus) {
+    showTitle.textContent = '识别中...';
+    currentSkin.textContent = getDisplaySkin()?.name || '默认小猫';
+    renderSourceBadge(currentSettings.themeMode === 'manual' ? 'manual' : 'default');
+    playbackModeText.textContent = '--';
+    statusText.textContent = '正在等待当前播放页完成播放器识别。';
+    return;
+  }
+
+  showTitle.textContent = currentStatus.title || '未识别';
+  currentSkin.textContent = currentStatus.skinName || getDisplaySkin(currentStatus)?.name || '默认小猫';
+  renderSourceBadge(currentStatus.skinSource || (currentSettings.themeMode === 'manual' ? 'manual' : 'default'));
+  playbackModeText.textContent = formatValue(currentStatus.playbackMode);
+
+  if (currentStatus.state === RUNTIME_STATES.ERROR) {
+    statusText.textContent = currentStatus.errorStage
+      ? `运行异常：${currentStatus.errorStage}`
+      : (currentStatus.message || '运行异常');
+    return;
+  }
+
+  if (currentStatus.renderActive) {
+    statusText.textContent = currentStatus.adActive
+      ? '当前处于广告态，挂件会自动弱化。'
+      : '当前挂件已显示，控件出现时会自动减弱。';
+    return;
+  }
+
+  statusText.textContent = currentStatus.message || '正在等待播放器稳定下来。';
+}
+
+async function loadSettingsIntoView() {
+  currentSettings = await readSettings();
+  enabledInput.checked = currentSettings.enabled;
+  renderModeButtons(currentSettings.mode);
+  renderThemeModeUI();
+  updateSkinSelectionUI();
+}
+
+async function loadStatusIntoView() {
+  activeTab = await getActiveTab();
+  const status = await readStatus();
+  currentStatus = statusBelongsToUrl(status, activeTab?.url || '') ? status : null;
+  renderActiveTabState();
+}
+
+async function syncActiveTab(reason) {
+  const tab = await getActiveTab();
+  if (!tab?.id) return;
+  await sendForceSyncToTab(tab.id, reason);
+}
+
+async function updateSettings(nextSettings, reason) {
+  currentSettings = await writeSettings(nextSettings);
+  enabledInput.checked = currentSettings.enabled;
+  renderModeButtons(currentSettings.mode);
+  renderThemeModeUI();
+  updateSkinSelectionUI();
+  renderRuntimeBadge(currentStatus);
+  await syncActiveTab(reason);
+  await loadStatusIntoView();
+}
+
+enabledInput.addEventListener('change', () => {
+  void updateSettings(
+    {
+      ...currentSettings,
+      enabled: enabledInput.checked
+    },
+    'popup:toggle'
+  );
 });
-chrome.storage.local.onChanged?.addListener?.(() => loadStatus());
 
-document.addEventListener('keydown', (event) => {
-  if (!matchesToggleShortcut(event)) return;
-  event.preventDefault();
-  void toggleEnabledFromShortcut();
+themeModeSelect.addEventListener('change', () => {
+  void updateSettings(
+    {
+      ...currentSettings,
+      themeMode: themeModeSelect.value,
+      selectedSkinId: themeModeSelect.value === 'manual'
+        ? (skinSelect.value || getFallbackSkinId())
+        : ''
+    },
+    'popup:theme-mode'
+  );
 });
 
-await ensureThemeRegistryLoaded();
-populateThemeSelect();
-await loadSettings();
-await loadStatus();
+skinSelect.addEventListener('change', () => {
+  renderSkinDescription(skinSelect.value);
+  if (themeModeSelect.value !== 'manual') return;
+
+  void updateSettings(
+    {
+      ...currentSettings,
+      selectedSkinId: skinSelect.value || getFallbackSkinId()
+    },
+    'popup:skin'
+  );
+});
+
+for (const button of modeButtons) {
+  button.addEventListener('click', () => {
+    void updateSettings(
+      {
+        ...currentSettings,
+        mode: button.dataset.mode
+      },
+      'popup:mode'
+    );
+  });
+}
+
+chrome.storage.sync.onChanged?.addListener?.((changes, areaName) => {
+  if (areaName !== 'sync' || !changes[STORAGE_KEY]) return;
+  void loadSettingsIntoView().then(loadStatusIntoView);
+});
+
+chrome.storage.local.onChanged?.addListener?.((changes, areaName) => {
+  if (areaName !== 'local' || !changes[STATUS_KEY]) return;
+  void loadStatusIntoView();
+});
+
+chrome.tabs.onActivated?.addListener?.(() => {
+  void loadStatusIntoView();
+});
+
+chrome.tabs.onUpdated?.addListener?.((tabId, changeInfo) => {
+  if (changeInfo.status === 'complete' || changeInfo.url) {
+    void loadStatusIntoView();
+  }
+});
+
+void (async function initPopup() {
+  skinRegistry = await loadSkinRegistry();
+  populateSkinSelect();
+  await loadSettingsIntoView();
+  await loadStatusIntoView();
+})();

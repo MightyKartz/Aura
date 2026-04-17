@@ -3,10 +3,11 @@
   "version": "0.1.0",
   "private": true,
   "type": "module",
-  "description": "Aura Chrome extension MVP for atmospheric letterbox overlays on Tencent Video.",
+  "description": "Aura Chrome extension MVP for corner-based animated theme decor on Tencent Video.",
   "scripts": {
     "dev": "node scripts/dev.mjs",
     "build": "node scripts/build.mjs",
+    "smoke": "node scripts/smoke.mjs",
     "clean": "rm -rf dist"
   }
 }

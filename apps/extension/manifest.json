@@ -2,8 +2,8 @@
   "manifest_version": 3,
   "name": "Aura",
   "version": "0.1.0",
-  "description": "Atmospheric borders for drama watching. MVP for Tencent Video.",
-  "permissions": ["storage", "activeTab", "tabs"],
+  "description": "Corner-based animated theme decor for drama watching. MVP for Tencent Video.",
+  "permissions": ["storage", "tabs", "scripting"],
   "host_permissions": [
     "https://v.qq.com/*"
   ],
@@ -26,14 +26,15 @@
   "commands": {
     "toggle-aura": {
       "suggested_key": {
-        "default": "Ctrl+Shift+A"
+        "default": "Ctrl+Shift+A",
+        "mac": "Command+Shift+A"
       },
       "description": "切换 Aura 开关"
     }
   },
   "web_accessible_resources": [
     {
-      "resources": ["themes/*", "theme-registry/index.js", "theme-registry/builtin-themes.json"],
+      "resources": ["themes/*", "theme-registry/builtin-skins.json", "runtime/*.js"],
       "matches": ["https://v.qq.com/*"]
     }
   ]

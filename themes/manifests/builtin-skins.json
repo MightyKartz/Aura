@@ -1,0 +1,86 @@
+{
+  "version": 1,
+  "defaultSkinId": "cat-default-v1",
+  "skins": [
+    {
+      "id": "cat-default-v1",
+      "name": "默认小猫",
+      "category": "default",
+      "description": "适合通用观影场景的蓝金轻氛围角落挂件。",
+      "match": {
+        "keywords": []
+      },
+      "assets": {
+        "topLeft": "themes/skin-default-top-left.svg",
+        "bottomRight": "themes/skin-default-bottom-right.svg"
+      },
+      "palette": {
+        "primary": "#6dd3ff",
+        "accent": "#ffd166",
+        "glow": "#8ecdf4"
+      },
+      "recommendedMode": "standard",
+      "tags": ["默认", "通用", "柔和"]
+    },
+    {
+      "id": "cat-suspense-v1",
+      "name": "悬疑猫",
+      "category": "genre",
+      "description": "冷蓝、黄铜与轻雾感装饰，适合悬疑和刑侦题材。",
+      "match": {
+        "keywords": ["悬疑", "刑侦", "犯罪", "探案", "推理", "悬", "疑", "谜", "罪", "案", "凶", "杀", "局", "警", "追", "诡", "夜"]
+      },
+      "assets": {
+        "topLeft": "themes/skin-suspense-top-left.svg",
+        "bottomRight": "themes/skin-suspense-bottom-right.svg"
+      },
+      "palette": {
+        "primary": "#8bc0d8",
+        "accent": "#e3b56d",
+        "glow": "#8bb2d1"
+      },
+      "recommendedMode": "standard",
+      "tags": ["悬疑", "刑侦", "冷蓝", "雾感"]
+    },
+    {
+      "id": "cat-ancient-romance-v1",
+      "name": "古偶猫",
+      "category": "genre",
+      "description": "花瓣、流苏和暖金月华，适合古偶和古装题材。",
+      "match": {
+        "keywords": ["古装", "爱情", "古偶", "言情", "宫", "凤", "后", "王", "君", "令", "缘", "月", "华", "帝", "朝", "国", "天下", "将军", "盛世", "太平", "年", "花"]
+      },
+      "assets": {
+        "topLeft": "themes/skin-ancient-top-left.svg",
+        "bottomRight": "themes/skin-ancient-bottom-right.svg"
+      },
+      "palette": {
+        "primary": "#f4d4e7",
+        "accent": "#f8c978",
+        "glow": "#f7d4dd"
+      },
+      "recommendedMode": "standard",
+      "tags": ["古偶", "古装", "花瓣", "金粉"]
+    },
+    {
+      "id": "cat-hotblood-v1",
+      "name": "热血猫",
+      "category": "genre",
+      "description": "橙红、速度线和跳跃能量，适合热血成长题材。",
+      "match": {
+        "keywords": ["热血", "青春", "成长", "运动", "战斗", "冒险", "燃", "战", "斗", "少年", "锋", "勇", "光", "队", "冠", "梦", "火"]
+      },
+      "assets": {
+        "topLeft": "themes/skin-hotblood-top-left.svg",
+        "bottomRight": "themes/skin-hotblood-bottom-right.svg"
+      },
+      "palette": {
+        "primary": "#ff9d63",
+        "accent": "#ffe082",
+        "glow": "#ffb05b"
+      },
+      "recommendedMode": "lively",
+      "tags": ["热血", "成长", "活力", "能量"]
+    }
+  ]
+}

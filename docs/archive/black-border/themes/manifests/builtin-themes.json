@@ -23,7 +23,7 @@
       "category": "genre",
       "description": "适合古装、仙侠、权谋类剧集的金纹月华风格。",
       "match": {
-        "keywords": ["宫", "仙", "侠", "凤", "后", "王", "君", "令", "缘", "月", "华"]
+        "keywords": ["宫", "仙", "侠", "凤", "后", "王", "君", "令", "缘", "月", "华", "帝", "朝", "国", "天下", "将军", "权谋", "盛世", "太平", "年"]
       },
       "assets": {
         "top": "themes/ancient-romance-top.svg",
@@ -72,10 +72,31 @@
       },
       "assets": {
         "top": "themes/zhu-yu-top.svg",
-        "bottom": "themes/zhu-yu-bottom.svg"
+        "bottom": "themes/zhu-yu-bottom.svg",
+        "preview": "themes/zhu-yu-top.svg"
       },
+      "assetStatus": "placeholder",
+      "assetSource": "builtin",
       "recommendedIntensity": 54,
       "tags": ["逐玉", "专属", "冷月", "鎏金"]
+    },
+    {
+      "id": "tai-ping-nian",
+      "name": "太平年 · 专属 Aura",
+      "category": "show",
+      "description": "为《太平年》试点准备的专属氛围主题，风格方向为盛世金纹与朝堂夜色。",
+      "match": {
+        "keywords": ["太平年", "tai-ping-nian"]
+      },
+      "assets": {
+        "top": "themes/tai-ping-nian-top.png",
+        "bottom": "themes/tai-ping-nian-bottom.png",
+        "preview": "themes/tai-ping-nian-preview.jpg"
+      },
+      "assetStatus": "ready",
+      "assetSource": "flow",
+      "recommendedIntensity": 56,
+      "tags": ["太平年", "专属", "朝堂", "盛世", "试点", "Flow"]
     }
   ]
 }

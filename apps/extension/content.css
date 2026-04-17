@@ -1,78 +1,179 @@
 #aura-root {
-  position: fixed;
-  inset: 0;
-  pointer-events: none;
-  z-index: 2147483000;
-}
-
-.aura-layer {
-  position: fixed;
-  pointer-events: none;
-  background-repeat: no-repeat;
-  background-position: center;
-  background-size: cover;
-  opacity: 0;
-  visibility: hidden;
-  transition: opacity 220ms ease, transform 220ms ease, visibility 220ms ease;
-  will-change: transform, opacity;
-  overflow: hidden;
-  isolation: isolate;
-}
-
-.aura-layer::before,
-.aura-layer::after {
-  content: '';
   position: absolute;
   inset: 0;
   pointer-events: none;
+  z-index: 2147483000;
+  overflow: hidden;
+  isolation: isolate;
+  --aura-primary: #6dd3ff;
+  --aura-accent: #ffd166;
+  --aura-glow: #8ecdf4;
+  --aura-top-inset: 16px;
+  --aura-bottom-inset: 16px;
+  --aura-top-width: 96px;
+  --aura-bottom-width: 132px;
+  --aura-bottom-offset: 54px;
+  --aura-top-opacity: 0.64;
+  --aura-bottom-opacity: 0.78;
 }
 
-.aura-layer::before {
-  background: linear-gradient(
-    to bottom,
-    rgba(255, 255, 255, 0.16) 0%,
-    rgba(255, 255, 255, 0.04) 28%,
-    rgba(255, 255, 255, 0) 72%
-  );
-  opacity: 0.65;
+.aura-ornament {
+  position: absolute;
+  pointer-events: none;
+  opacity: 0;
+  transition:
+    opacity 180ms ease,
+    transform 180ms ease,
+    filter 180ms ease;
+  will-change: opacity, transform, filter;
 }
 
-.aura-layer::after {
-  background:
-    radial-gradient(circle at 50% 0%, rgba(255,255,255,0.24), transparent 46%),
-    linear-gradient(to bottom, rgba(10,16,32,0.02), rgba(10,16,32,0.18));
-  opacity: 0.7;
+.aura-ornament__image {
+  display: block;
+  width: 100%;
+  height: auto;
+  user-select: none;
+  pointer-events: none;
+  filter: drop-shadow(0 10px 24px color-mix(in srgb, var(--aura-glow) 28%, transparent));
 }
 
-.aura-layer--top {
-  top: 0;
-  transform: translateY(-4px);
+.aura-ornament::before,
+.aura-ornament::after {
+  content: '';
+  position: absolute;
+  pointer-events: none;
 }
 
-.aura-layer--top::after {
-  box-shadow: inset 0 -24px 42px rgba(0, 0, 0, 0.18);
+.aura-ornament--top-left {
+  top: var(--aura-top-inset);
+  left: var(--aura-top-inset);
+  width: var(--aura-top-width);
+  transform: translate3d(0, 0, 0) scale(0.96);
 }
 
-.aura-layer--bottom {
-  top: 0;
-  transform: translateY(4px);
+.aura-ornament--top-left::before {
+  top: -10px;
+  left: -8px;
+  width: 86%;
+  height: 74%;
+  border-radius: 28px;
+  background: radial-gradient(circle at 28% 30%, color-mix(in srgb, var(--aura-primary) 24%, transparent), transparent 72%);
+  opacity: 0.72;
 }
 
-.aura-layer--bottom::before {
-  background: linear-gradient(
-    to top,
-    rgba(255, 255, 255, 0.16) 0%,
-    rgba(255, 255, 255, 0.04) 28%,
-    rgba(255, 255, 255, 0) 72%
-  );
+.aura-ornament--bottom-right {
+  right: var(--aura-bottom-inset);
+  bottom: var(--aura-bottom-offset);
+  width: var(--aura-bottom-width);
+  transform: translate3d(0, 0, 0) scale(0.98);
 }
 
-.aura-layer--bottom::after {
-  box-shadow: inset 0 24px 42px rgba(0, 0, 0, 0.2);
+.aura-ornament--bottom-right::before {
+  right: 16%;
+  bottom: 10%;
+  width: 62%;
+  height: 48%;
+  border-radius: 999px;
+  background: radial-gradient(circle, color-mix(in srgb, var(--aura-glow) 22%, transparent), transparent 74%);
+  opacity: 0.82;
 }
 
-.aura-layer--active {
-  opacity: var(--aura-opacity, 0.45);
-  visibility: visible;
-  transform: translateY(0);
+.aura-ornament--bottom-right::after {
+  right: 18%;
+  bottom: 14%;
+  width: 38%;
+  height: 12%;
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--aura-accent) 14%, transparent);
+  filter: blur(10px);
+  opacity: 0.62;
+}
+
+#aura-root[data-visible='1'] .aura-ornament--top-left {
+  opacity: var(--aura-top-opacity);
+}
+
+#aura-root[data-visible='1'] .aura-ornament--bottom-right {
+  opacity: var(--aura-bottom-opacity);
+}
+
+#aura-root[data-mode='quiet'] .aura-ornament__image {
+  animation-duration: 7.2s;
+}
+
+#aura-root[data-mode='standard'] .aura-ornament__image {
+  animation-duration: 5.6s;
+}
+
+#aura-root[data-mode='lively'] .aura-ornament__image {
+  animation-duration: 4.6s;
+}
+
+#aura-root[data-controls-visible='1'] .aura-ornament--bottom-right {
+  transform: translate3d(0, -6px, 0) scale(0.95);
+  filter: saturate(0.92);
+}
+
+#aura-root[data-ad='1'] .aura-ornament--top-left,
+#aura-root[data-ad='1'] .aura-ornament--bottom-right {
+  filter: saturate(0.86) brightness(0.92);
+}
+
+#aura-root[data-ad='1'] .aura-ornament--bottom-right {
+  transform: translate3d(0, -4px, 0) scale(0.94);
+}
+
+#aura-root[data-playback='paused'] .aura-ornament--bottom-right {
+  transform: translate3d(0, -2px, 0) scale(0.97);
+}
+
+#aura-root[data-fullscreen='1'] .aura-ornament--top-left,
+#aura-root[data-fullscreen='1'] .aura-ornament--bottom-right {
+  filter: saturate(1.04);
+}
+
+.aura-ornament--top-left .aura-ornament__image {
+  animation-name: auraFloatSoft;
+  animation-timing-function: ease-in-out;
+  animation-iteration-count: infinite;
+}
+
+.aura-ornament--bottom-right .aura-ornament__image {
+  animation-name: auraBobCat;
+  animation-timing-function: ease-in-out;
+  animation-iteration-count: infinite;
+}
+
+@keyframes auraFloatSoft {
+  0%,
+  100% {
+    transform: translate3d(0, 0, 0);
+  }
+
+  50% {
+    transform: translate3d(0, -3px, 0);
+  }
+}
+
+@keyframes auraBobCat {
+  0%,
+  100% {
+    transform: translate3d(0, 0, 0) rotate(0deg);
+  }
+
+  25% {
+    transform: translate3d(-1px, -3px, 0) rotate(-0.6deg);
+  }
+
+  75% {
+    transform: translate3d(1px, -4px, 0) rotate(0.8deg);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .aura-ornament,
+  .aura-ornament__image {
+    animation: none !important;
+    transition: none !important;
+  }
 }

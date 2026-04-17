@@ -1,16 +1,50 @@
-# 腾讯视频适配说明（MVP）
+# 腾讯视频适配说明（当前主线）
 
-## 当前策略
-- 站点：`https://v.qq.com/*`
-- 方式：优先识别页面内面积最大的 `video` 元素
-- 黑边估算：基于视频原始宽高比与渲染容器宽高比计算上下留白
+## 目标
 
-## 已知局限
-- 如果腾讯视频使用多层容器裁切，单纯依赖 `video.getBoundingClientRect()` 可能不够精准
-- 当视频源本身不是宽银幕格式时，Aura 不应强行显示
-- 后续可能需要站点专属容器定位和全屏态逻辑增强
+Aura 在腾讯视频上不再做黑边测量，而是稳定识别播放器容器，并把主题挂件锚定在容器左上角和右下角。
 
-## 下一步建议
-1. 采集腾讯视频播放页 DOM 样本
-2. 增加播放器容器识别规则
-3. 提升全屏切换与剧集识别逻辑
+## 当前 adapter contract
+
+- `id`: `tencent-video`
+- `matchesUrl(url)`: 判断是否为腾讯视频页面
+- `isPlaybackPage(url)`: 判断是否为腾讯视频播放页
+- `createDetector(context)`: 创建腾讯视频检测器
+
+## 当前检测策略
+
+### 1. 站点判断
+- 域名：`https://v.qq.com/*`
+- 播放页规则：
+  - `/x/cover/`
+  - `/x/page/`
+  - query 中包含 `vid` 或 `cid`
+  - `txp/iframe-player.html`
+
+### 2. 容器优先级
+- 优先识别主播放器壳层，而不是单纯依赖 `video rect`
+- 当前重点候选：
+  - `#player-component`
+  - `#main-player`
+  - `.main-player-container`
+  - `.main-player-wrapper`
+  - `.txp_player` / `.txp-player`
+
+### 3. 状态感知
+- 控件出现时右下挂件上移并减弱
+- 广告态下整体弱化
+- 网页全屏与原生全屏使用同一条布局链
+
+## 当前已完成
+
+1. 腾讯视频 adapter 已接入共享 site contract
+2. content runtime 与 popup/background 共用同一套站点判断
+3. 快捷键与 popup 修改设置后会向当前页发送 `force-sync`
+4. 关闭 Aura 时会立即清 overlay，并解绑目标监听，避免残留挂件
+
+## 当前待验证
+
+1. 普通播放页稳定显示
+2. 网页全屏边距与控件避让稳定
+3. 原生全屏下角落挂件不压控制区
+4. 广告态弱化在真实页观感合理
