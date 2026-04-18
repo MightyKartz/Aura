@@ -13,6 +13,15 @@ let skinRegistry = {
 let currentSettings = { ...DEFAULT_SETTINGS };
 let currentStatus = null;
 let activeTab = null;
+let viewRefreshVersion = 0;
+let lastAppliedSnapshot = {
+  settings: currentSettings,
+  tab: activeTab,
+  status: currentStatus
+};
+
+const STATUS_SETTLE_ATTEMPTS = 12;
+const STATUS_SETTLE_DELAY_MS = 250;
 
 const enabledInput = document.getElementById('enabled');
 const supportStatus = document.getElementById('supportStatus');
@@ -109,9 +118,12 @@ function renderRuntimeBadge(status) {
   let tone = 'pending';
   let label = '待显示';
 
-  if (!currentSettings.enabled || status?.state === RUNTIME_STATES.DISABLED) {
+  if (!currentSettings.enabled) {
     tone = 'inactive';
     label = '已关闭';
+  } else if (status?.state === RUNTIME_STATES.DISABLED) {
+    tone = 'pending';
+    label = '同步中';
   } else if (status?.state === RUNTIME_STATES.ERROR) {
     tone = 'inactive';
     label = '异常';
@@ -229,12 +241,30 @@ function renderActiveTabState() {
 
   renderSupportPill('腾讯视频已适配', 'pill--supported');
 
+  if (!currentSettings.enabled) {
+    showTitle.textContent = currentStatus?.title || '已关闭';
+    currentSkin.textContent = currentStatus?.skinName || getDisplaySkin(currentStatus)?.name || '默认小猫';
+    renderSourceBadge(currentStatus?.skinSource || (currentSettings.themeMode === 'manual' ? 'manual' : 'default'));
+    playbackModeText.textContent = formatValue(currentStatus?.playbackMode);
+    statusText.textContent = 'Aura 已关闭';
+    return;
+  }
+
   if (!currentStatus) {
     showTitle.textContent = '识别中...';
     currentSkin.textContent = getDisplaySkin()?.name || '默认小猫';
     renderSourceBadge(currentSettings.themeMode === 'manual' ? 'manual' : 'default');
     playbackModeText.textContent = '--';
     statusText.textContent = '正在等待当前播放页完成播放器识别。';
+    return;
+  }
+
+  if (currentStatus.state === RUNTIME_STATES.DISABLED) {
+    showTitle.textContent = currentStatus.title || '识别中...';
+    currentSkin.textContent = currentStatus.skinName || getDisplaySkin(currentStatus)?.name || '默认小猫';
+    renderSourceBadge(currentStatus.skinSource || (currentSettings.themeMode === 'manual' ? 'manual' : 'default'));
+    playbackModeText.textContent = formatValue(currentStatus.playbackMode);
+    statusText.textContent = '正在重新连接当前播放页...';
     return;
   }
 
@@ -260,19 +290,76 @@ function renderActiveTabState() {
   statusText.textContent = currentStatus.message || '正在等待播放器稳定下来。';
 }
 
-async function loadSettingsIntoView() {
-  currentSettings = await readSettings();
+function applyPopupSnapshot({ settings, tab, status }) {
+  lastAppliedSnapshot = { settings, tab, status };
+  currentSettings = settings;
+  activeTab = tab;
+  currentStatus = status;
   enabledInput.checked = currentSettings.enabled;
   renderModeButtons(currentSettings.mode);
   renderThemeModeUI();
   updateSkinSelectionUI();
+  renderActiveTabState();
 }
 
-async function loadStatusIntoView() {
-  activeTab = await getActiveTab();
-  const status = await readStatus();
-  currentStatus = statusBelongsToUrl(status, activeTab?.url || '') ? status : null;
-  renderActiveTabState();
+async function readPopupSnapshot() {
+  const [settings, tab, status] = await Promise.all([
+    readSettings(),
+    getActiveTab(),
+    readStatus()
+  ]);
+
+  return {
+    settings,
+    tab,
+    status: statusBelongsToUrl(status, tab?.url || '') ? status : null
+  };
+}
+
+async function refreshPopupView() {
+  const version = ++viewRefreshVersion;
+  const snapshot = await readPopupSnapshot();
+  if (version !== viewRefreshVersion) return lastAppliedSnapshot;
+  applyPopupSnapshot(snapshot);
+  return snapshot;
+}
+
+function snapshotMatchesExpectedState(snapshot, expectedSettings) {
+  if (!snapshot || !expectedSettings) return false;
+  if (snapshot.settings?.enabled !== expectedSettings.enabled) return false;
+
+  const support = getSiteSupport(snapshot.tab?.url || '');
+  if (!support.supported || !support.playback) {
+    return true;
+  }
+
+  if (!snapshot.status) return false;
+
+  if (!expectedSettings.enabled) {
+    return snapshot.status.enabled === false || snapshot.status.state === RUNTIME_STATES.DISABLED;
+  }
+
+  return snapshot.status.enabled === true && snapshot.status.state !== RUNTIME_STATES.DISABLED;
+}
+
+function delay(ms) {
+  return new Promise((resolve) => {
+    window.setTimeout(resolve, ms);
+  });
+}
+
+async function settlePopupView(expectedSettings) {
+  let snapshot = lastAppliedSnapshot;
+
+  for (let attempt = 0; attempt < STATUS_SETTLE_ATTEMPTS; attempt += 1) {
+    snapshot = await refreshPopupView();
+    if (snapshotMatchesExpectedState(snapshot, expectedSettings)) {
+      return snapshot;
+    }
+    await delay(STATUS_SETTLE_DELAY_MS);
+  }
+
+  return snapshot;
 }
 
 async function syncActiveTab(reason) {
@@ -282,14 +369,10 @@ async function syncActiveTab(reason) {
 }
 
 async function updateSettings(nextSettings, reason) {
-  currentSettings = await writeSettings(nextSettings);
-  enabledInput.checked = currentSettings.enabled;
-  renderModeButtons(currentSettings.mode);
-  renderThemeModeUI();
-  updateSkinSelectionUI();
-  renderRuntimeBadge(currentStatus);
+  const normalizedSettings = await writeSettings(nextSettings);
+  await refreshPopupView();
   await syncActiveTab(reason);
-  await loadStatusIntoView();
+  await settlePopupView(normalizedSettings);
 }
 
 enabledInput.addEventListener('change', () => {
@@ -342,27 +425,26 @@ for (const button of modeButtons) {
 
 chrome.storage.sync.onChanged?.addListener?.((changes, areaName) => {
   if (areaName !== 'sync' || !changes[STORAGE_KEY]) return;
-  void loadSettingsIntoView().then(loadStatusIntoView);
+  void refreshPopupView();
 });
 
 chrome.storage.local.onChanged?.addListener?.((changes, areaName) => {
   if (areaName !== 'local' || !changes[STATUS_KEY]) return;
-  void loadStatusIntoView();
+  void refreshPopupView();
 });
 
 chrome.tabs.onActivated?.addListener?.(() => {
-  void loadStatusIntoView();
+  void refreshPopupView();
 });
 
 chrome.tabs.onUpdated?.addListener?.((tabId, changeInfo) => {
   if (changeInfo.status === 'complete' || changeInfo.url) {
-    void loadStatusIntoView();
+    void refreshPopupView();
   }
 });
 
 void (async function initPopup() {
   skinRegistry = await loadSkinRegistry();
   populateSkinSelect();
-  await loadSettingsIntoView();
-  await loadStatusIntoView();
+  await refreshPopupView();
 })();
