@@ -70,9 +70,17 @@ function getDisplaySkin(status = currentStatus) {
   return getSkinById(skinRegistry, getDisplaySkinId(status)) ?? getFallbackSkin();
 }
 
+function isExtensionPageUrl(url = '') {
+  return /^chrome-extension:\/\//i.test(String(url || ''));
+}
+
 async function getActiveTab() {
-  const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
-  return tab ?? null;
+  const tabs = await chrome.tabs.query({});
+  const contentTabs = tabs
+    .filter((tab) => !isExtensionPageUrl(tab?.url))
+    .sort((left, right) => (right.lastAccessed || 0) - (left.lastAccessed || 0));
+
+  return contentTabs[0] ?? null;
 }
 
 function renderSupportPill(text, tone) {

@@ -25,9 +25,11 @@ function serializeError(error) {
 export function startAuraContentController({
   frameId = `aura-${Math.random().toString(36).slice(2, 10)}`
 } = {}) {
+  const LOW_SIGNAL_SYNC_REASONS = new Set(['mutation', 'heartbeat', 'pointer', 'pointer-settle', 'resize-observer']);
   let disposed = false;
   let syncQueued = false;
   let pendingReason = 'init';
+  let lastMeaningfulReason = 'init';
   let settings = { ...DEFAULT_SETTINGS };
   let skinRegistry = createFallbackRegistry();
   let activeContainer = null;
@@ -156,7 +158,39 @@ export function startAuraContentController({
     lifecycle.clearTargets();
   }
 
+  function isLowSignalSyncReason(reason = '') {
+    if (!reason) return false;
+    return LOW_SIGNAL_SYNC_REASONS.has(reason);
+  }
+
+  function getReportedReason(reason = '') {
+    if (!isLowSignalSyncReason(reason)) {
+      lastMeaningfulReason = reason || lastMeaningfulReason;
+      return reason;
+    }
+
+    return lastMeaningfulReason || reason;
+  }
+
+  function shouldReplacePendingReason(nextReason = '', currentReason = '') {
+    if (!currentReason) return true;
+
+    const nextIsLowSignal = isLowSignalSyncReason(nextReason);
+    const currentIsLowSignal = isLowSignalSyncReason(currentReason);
+
+    if (!currentIsLowSignal && nextIsLowSignal) {
+      return false;
+    }
+
+    if (currentIsLowSignal && !nextIsLowSignal) {
+      return true;
+    }
+
+    return true;
+  }
+
   function writePassiveStatus(state, message, reason, extra = {}) {
+    const reportedReason = getReportedReason(reason);
     statusReporter.clearStatus({
       state,
       message,
@@ -164,7 +198,7 @@ export function startAuraContentController({
       title: extractShowTitle(),
       skinContext: extractShowContext(),
       extra: {
-        lastSyncReason: reason,
+        lastSyncReason: reportedReason,
         moduleLoadState: runtimeDiagnostics.moduleLoadState,
         registryLoadState: runtimeDiagnostics.registryLoadState,
         syncState: 'idle',
@@ -177,6 +211,7 @@ export function startAuraContentController({
     const serialized = serializeError(error);
     const hadVideo = activeVideo instanceof HTMLVideoElement;
     const hadContainer = activeContainer instanceof HTMLElement;
+    const reportedReason = getReportedReason(reason);
 
     clearVisualTargets();
     console.warn(`[Aura runtime] ${message}:`, error);
@@ -196,7 +231,7 @@ export function startAuraContentController({
       playbackState: 'playing',
       controlsVisible: false,
       adActive: false,
-      lastSyncReason: reason,
+      lastSyncReason: reportedReason,
       moduleLoadState: runtimeDiagnostics.moduleLoadState,
       registryLoadState: runtimeDiagnostics.registryLoadState,
       syncState: 'failed',
@@ -207,7 +242,7 @@ export function startAuraContentController({
     markRuntimeDiagnostic({
       stage,
       state: RUNTIME_STATES.ERROR,
-      lastSyncReason: reason,
+      lastSyncReason: reportedReason,
       syncState: 'failed',
       errorStage: stage,
       errorMessage: serialized.message
@@ -237,7 +272,9 @@ export function startAuraContentController({
 
   function scheduleSync(reason = 'unknown') {
     if (disposed) return;
-    pendingReason = reason;
+    if (!syncQueued || shouldReplacePendingReason(reason, pendingReason)) {
+      pendingReason = reason;
+    }
     if (syncQueued) return;
     syncQueued = true;
 
@@ -252,11 +289,12 @@ export function startAuraContentController({
 
     try {
       refreshSiteAdapter();
+      const reportedReason = getReportedReason(reason);
 
       markRuntimeDiagnostic({
         stage: 'sync',
         state: 'running',
-        lastSyncReason: reason,
+        lastSyncReason: reportedReason,
         syncState: 'running',
         errorStage: runtimeDiagnostics.errorStage === 'sync' ? '' : runtimeDiagnostics.errorStage,
         errorMessage: runtimeDiagnostics.errorStage === 'sync' ? '' : runtimeDiagnostics.errorMessage
@@ -332,20 +370,20 @@ export function startAuraContentController({
         mode: settings.mode
       });
 
-      statusReporter.renderStatus({
-        title,
-        showContext,
-        container: activeContainer,
+        statusReporter.renderStatus({
+          title,
+          showContext,
+          container: activeContainer,
         containerSource: containerMatch.source,
         video: activeVideo,
-        skin,
-        skinSource,
-        visualState,
-        reason,
-        settings,
-        diagnostics: {
-          errorStage: '',
-          moduleLoadState: runtimeDiagnostics.moduleLoadState,
+          skin,
+          skinSource,
+          visualState,
+          reason: reportedReason,
+          settings,
+          diagnostics: {
+            errorStage: '',
+            moduleLoadState: runtimeDiagnostics.moduleLoadState,
           registryLoadState: runtimeDiagnostics.registryLoadState,
           syncState: 'ok'
         }
