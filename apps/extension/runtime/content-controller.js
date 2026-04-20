@@ -142,12 +142,18 @@ export function startAuraContentController({
     return detector?.isAdvertisementActive?.(container) ?? false;
   }
 
+  function hasRecentPointerActivity() {
+    const lastPointerAt = lifecycle.getLastPointerAt();
+    return lastPointerAt > 0 && (Date.now() - lastPointerAt) < 1800;
+  }
+
   function buildVisualState(container, video) {
     return {
       playbackMode: detectPlaybackMode(container, video),
       playbackState: detectPlaybackState(video),
       controlsVisible: shouldLiftForControls(container, video),
-      adActive: isAdvertisementActive(container)
+      adActive: isAdvertisementActive(container),
+      attentionActive: hasRecentPointerActivity()
     };
   }
 

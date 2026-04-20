@@ -72,4 +72,5 @@ export function applyLayout(root, layout, visualState, mode) {
   root.dataset.controlsVisible = visualState.controlsVisible ? '1' : '0';
   root.dataset.fullscreen = visualState.playbackMode === 'windowed' ? '0' : '1';
   root.dataset.ad = visualState.adActive ? '1' : '0';
+  root.dataset.attention = visualState.attentionActive ? '1' : '0';
 }

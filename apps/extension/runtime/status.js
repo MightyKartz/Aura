@@ -41,6 +41,37 @@ export function createStatusReporter({
   writeStatus = (payload) => chrome.storage.local.set(payload)
 } = {}) {
   let lastStatusFingerprint = '';
+  let statusSequence = 0;
+  let pendingStatus = null;
+  let writeInFlight = false;
+
+  async function flushPendingStatus() {
+    if (writeInFlight) return;
+    writeInFlight = true;
+
+    try {
+      while (pendingStatus) {
+        const nextStatus = pendingStatus;
+        pendingStatus = null;
+        statusSequence += 1;
+
+        await writeStatus({
+          [STATUS_KEY]: {
+            ...nextStatus,
+            updatedAt: getNow(),
+            statusSeq: statusSequence
+          }
+        });
+      }
+    } catch (error) {
+      console.warn('[Aura status] failed to write runtime status:', error);
+    } finally {
+      writeInFlight = false;
+      if (pendingStatus) {
+        void flushPendingStatus();
+      }
+    }
+  }
 
   function commitStatus(payload) {
     const pageUrl = getPageUrl();
@@ -58,12 +89,8 @@ export function createStatusReporter({
     if (fingerprint === lastStatusFingerprint) return;
     lastStatusFingerprint = fingerprint;
 
-    void writeStatus({
-      [STATUS_KEY]: {
-        ...normalized,
-        updatedAt: getNow()
-      }
-    });
+    pendingStatus = normalized;
+    void flushPendingStatus();
   }
 
   function clearStatus({ state, message, settings, title, skinContext, extra = {} }) {

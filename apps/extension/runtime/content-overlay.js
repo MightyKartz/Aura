@@ -5,10 +5,21 @@ export const OVERLAY_ROOT_ID = 'aura-root';
 function buildRootMarkup() {
   return `
     <div class="aura-ornament aura-ornament--top-left" data-slot="top-left">
-      <img class="aura-ornament__image" data-image="top-left" alt="" />
+      <span class="aura-ornament__backdrop"></span>
+      <span class="aura-ornament__spark aura-ornament__spark--alpha"></span>
+      <span class="aura-ornament__spark aura-ornament__spark--beta"></span>
+      <span class="aura-ornament__body">
+        <img class="aura-ornament__image" data-image="top-left" alt="" />
+      </span>
     </div>
     <div class="aura-ornament aura-ornament--bottom-right" data-slot="bottom-right">
-      <img class="aura-ornament__image" data-image="bottom-right" alt="" />
+      <span class="aura-ornament__backdrop"></span>
+      <span class="aura-ornament__spark aura-ornament__spark--alpha"></span>
+      <span class="aura-ornament__spark aura-ornament__spark--beta"></span>
+      <span class="aura-ornament__spark aura-ornament__spark--gamma"></span>
+      <span class="aura-ornament__body">
+        <img class="aura-ornament__image" data-image="bottom-right" alt="" />
+      </span>
     </div>
   `;
 }

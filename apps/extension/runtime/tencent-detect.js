@@ -350,9 +350,15 @@ export function createTencentDetector({ getActiveContainer, getLastPointerAt } =
     },
 
     shouldLiftForControls(container, video) {
-      return this.hasVisibleControls(container)
-        || Date.now() - (getLastPointerAt?.() ?? 0) < 1500
-        || Boolean(video instanceof HTMLVideoElement && video.paused && video.currentTime > 0);
+      const hasRecentPointer = Date.now() - (getLastPointerAt?.() ?? 0) < 1500;
+      if (hasRecentPointer) return true;
+
+      const hasPausedVideo = Boolean(video instanceof HTMLVideoElement && video.paused && video.currentTime > 0);
+      if (hasPausedVideo) return true;
+
+      if (!(video instanceof HTMLVideoElement)) return false;
+
+      return this.hasVisibleControls(container);
     }
   };
 }

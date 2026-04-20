@@ -6,18 +6,18 @@
       "id": "cat-default-v1",
       "name": "默认小猫",
       "category": "default",
-      "description": "适合通用观影场景的蓝金轻氛围角落挂件。",
+      "description": "适合通用观影场景的暖白发光小猫角落挂件。",
       "match": {
         "keywords": []
       },
       "assets": {
-        "topLeft": "themes/skin-default-top-left.svg",
-        "bottomRight": "themes/skin-default-bottom-right.svg"
+        "topLeft": "themes/skin-default-top-left.png",
+        "bottomRight": "themes/skin-default-bottom-right.png"
       },
       "palette": {
-        "primary": "#6dd3ff",
-        "accent": "#ffd166",
-        "glow": "#8ecdf4"
+        "primary": "#fff1cf",
+        "accent": "#ffd45f",
+        "glow": "#ffcf5a"
       },
       "recommendedMode": "standard",
       "tags": ["默认", "通用", "柔和"]

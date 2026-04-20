@@ -14,14 +14,20 @@ let currentSettings = { ...DEFAULT_SETTINGS };
 let currentStatus = null;
 let activeTab = null;
 let viewRefreshVersion = 0;
+let transientRefreshIntervalId = 0;
+let transientRefreshRemaining = 0;
+const tabNavigationStartedAt = new Map();
 let lastAppliedSnapshot = {
   settings: currentSettings,
   tab: activeTab,
   status: currentStatus
 };
+let lastAppliedSnapshotFingerprint = '';
 
 const STATUS_SETTLE_ATTEMPTS = 12;
 const STATUS_SETTLE_DELAY_MS = 250;
+const TRANSIENT_REFRESH_INTERVAL_MS = 200;
+const TRANSIENT_REFRESH_STEPS = 6;
 
 const enabledInput = document.getElementById('enabled');
 const supportStatus = document.getElementById('supportStatus');
@@ -83,13 +89,54 @@ function isExtensionPageUrl(url = '') {
   return /^chrome-extension:\/\//i.test(String(url || ''));
 }
 
-async function getActiveTab() {
-  const tabs = await chrome.tabs.query({});
-  const contentTabs = tabs
-    .filter((tab) => !isExtensionPageUrl(tab?.url))
-    .sort((left, right) => (right.lastAccessed || 0) - (left.lastAccessed || 0));
+function isBrowsablePageUrl(url = '') {
+  return /^https?:\/\//i.test(String(url || ''));
+}
 
-  return contentTabs[0] ?? null;
+function isEligibleContentTab(tab, excludedTabId = null) {
+  return Number.isInteger(tab?.id)
+    && tab.id !== excludedTabId
+    && !isExtensionPageUrl(tab?.url)
+    && isBrowsablePageUrl(tab?.url);
+}
+
+function markTabNavigationStarted(tabId) {
+  if (!Number.isInteger(tabId)) return;
+  tabNavigationStartedAt.set(tabId, Date.now());
+}
+
+function clearTabNavigationBoundary(tabId) {
+  if (!Number.isInteger(tabId)) return;
+  tabNavigationStartedAt.delete(tabId);
+}
+
+function getTabNavigationStartedAt(tabId) {
+  if (!Number.isInteger(tabId)) return 0;
+  return tabNavigationStartedAt.get(tabId) ?? 0;
+}
+
+async function getActiveTab() {
+  const currentPopupTab = chrome.tabs.getCurrent
+    ? await chrome.tabs.getCurrent().catch(() => null)
+    : null;
+  const excludedTabId = currentPopupTab?.id ?? null;
+
+  const activeTabs = await chrome.tabs.query({ active: true, lastFocusedWindow: true });
+  const activeContentTab = activeTabs.find((tab) => isEligibleContentTab(tab, excludedTabId));
+  if (activeContentTab) return activeContentTab;
+
+  const windowTabs = await chrome.tabs.query({ lastFocusedWindow: true });
+  const recentWindowContentTab = windowTabs
+    .filter((tab) => isEligibleContentTab(tab, excludedTabId))
+    .sort((left, right) => (right.lastAccessed || 0) - (left.lastAccessed || 0))[0];
+  if (recentWindowContentTab) return recentWindowContentTab;
+
+  const allTabs = await chrome.tabs.query({});
+  const recentContentTab = allTabs
+    .filter((tab) => isEligibleContentTab(tab, excludedTabId))
+    .sort((left, right) => (right.lastAccessed || 0) - (left.lastAccessed || 0))[0];
+
+  return recentContentTab ?? null;
 }
 
 function renderSupportPill(text, tone) {
@@ -202,6 +249,32 @@ function renderDiagnostics(status) {
   diagnosticPageUrl.textContent = formatValue(status?.pageUrl);
 }
 
+function getDefaultSkinSource() {
+  return currentSettings.themeMode === 'manual' ? 'manual' : 'default';
+}
+
+function getDisplaySkinName(status = currentStatus) {
+  return status?.skinName || getDisplaySkin(status)?.name || '默认小猫';
+}
+
+function getDisplaySkinSource(status = currentStatus) {
+  return status?.skinSource || getDefaultSkinSource();
+}
+
+function renderPlaybackSummary({
+  title,
+  skinName = getDisplaySkinName(),
+  skinSource = getDisplaySkinSource(),
+  playbackMode = '--',
+  detail
+}) {
+  showTitle.textContent = title;
+  currentSkin.textContent = skinName;
+  renderSourceBadge(skinSource);
+  playbackModeText.textContent = playbackMode;
+  statusText.textContent = detail;
+}
+
 function renderActiveTabState() {
   const support = getSiteSupport(activeTab?.url || '');
 
@@ -211,86 +284,138 @@ function renderActiveTabState() {
 
   if (!activeTab) {
     renderSupportPill('未找到页面', 'pill--neutral');
-    showTitle.textContent = '等待中...';
-    currentSkin.textContent = getDisplaySkin()?.name || '默认小猫';
-    renderSourceBadge(currentSettings.themeMode === 'manual' ? 'manual' : 'default');
-    playbackModeText.textContent = '--';
-    statusText.textContent = '当前没有可用的活动标签页。';
+    renderPlaybackSummary({
+      title: '等待中...',
+      detail: '当前没有可用的活动标签页。'
+    });
     return;
   }
 
   if (!support.supported) {
     renderSupportPill('当前页未适配', 'pill--neutral');
-    showTitle.textContent = '等待腾讯视频';
-    currentSkin.textContent = getDisplaySkin()?.name || '默认小猫';
-    renderSourceBadge(currentSettings.themeMode === 'manual' ? 'manual' : 'default');
-    playbackModeText.textContent = '--';
-    statusText.textContent = 'Aura 当前先稳定支持腾讯视频播放页。';
+    renderPlaybackSummary({
+      title: '等待腾讯视频',
+      detail: 'Aura 当前先稳定支持腾讯视频播放页。'
+    });
     return;
   }
 
   if (!support.playback) {
     renderSupportPill('腾讯视频非播放页', 'pill--inactive');
-    showTitle.textContent = '等待进入播放页';
-    currentSkin.textContent = getDisplaySkin()?.name || '默认小猫';
-    renderSourceBadge(currentSettings.themeMode === 'manual' ? 'manual' : 'default');
-    playbackModeText.textContent = '--';
-    statusText.textContent = '进入播放页后，角落挂件会自动出现。';
+    renderPlaybackSummary({
+      title: '等待进入播放页',
+      detail: '进入播放页后，角落挂件会自动出现。'
+    });
     return;
   }
 
   renderSupportPill('腾讯视频已适配', 'pill--supported');
 
   if (!currentSettings.enabled) {
-    showTitle.textContent = currentStatus?.title || '已关闭';
-    currentSkin.textContent = currentStatus?.skinName || getDisplaySkin(currentStatus)?.name || '默认小猫';
-    renderSourceBadge(currentStatus?.skinSource || (currentSettings.themeMode === 'manual' ? 'manual' : 'default'));
-    playbackModeText.textContent = formatValue(currentStatus?.playbackMode);
-    statusText.textContent = 'Aura 已关闭';
+    renderPlaybackSummary({
+      title: currentStatus?.title || '已关闭',
+      skinName: getDisplaySkinName(currentStatus),
+      skinSource: getDisplaySkinSource(currentStatus),
+      playbackMode: formatValue(currentStatus?.playbackMode),
+      detail: 'Aura 已关闭'
+    });
     return;
   }
 
   if (!currentStatus) {
-    showTitle.textContent = '识别中...';
-    currentSkin.textContent = getDisplaySkin()?.name || '默认小猫';
-    renderSourceBadge(currentSettings.themeMode === 'manual' ? 'manual' : 'default');
-    playbackModeText.textContent = '--';
-    statusText.textContent = '正在等待当前播放页完成播放器识别。';
+    renderPlaybackSummary({
+      title: '识别中...',
+      detail: '正在等待当前播放页完成播放器识别。'
+    });
     return;
   }
 
   if (currentStatus.state === RUNTIME_STATES.DISABLED) {
-    showTitle.textContent = currentStatus.title || '识别中...';
-    currentSkin.textContent = currentStatus.skinName || getDisplaySkin(currentStatus)?.name || '默认小猫';
-    renderSourceBadge(currentStatus.skinSource || (currentSettings.themeMode === 'manual' ? 'manual' : 'default'));
-    playbackModeText.textContent = formatValue(currentStatus.playbackMode);
-    statusText.textContent = '正在重新连接当前播放页...';
+    renderPlaybackSummary({
+      title: currentStatus.title || '识别中...',
+      skinName: getDisplaySkinName(currentStatus),
+      skinSource: getDisplaySkinSource(currentStatus),
+      playbackMode: formatValue(currentStatus.playbackMode),
+      detail: '正在重新连接当前播放页...'
+    });
     return;
   }
 
-  showTitle.textContent = currentStatus.title || '未识别';
-  currentSkin.textContent = currentStatus.skinName || getDisplaySkin(currentStatus)?.name || '默认小猫';
-  renderSourceBadge(currentStatus.skinSource || (currentSettings.themeMode === 'manual' ? 'manual' : 'default'));
-  playbackModeText.textContent = formatValue(currentStatus.playbackMode);
+  const sharedSummary = {
+    title: currentStatus.title || '未识别',
+    skinName: getDisplaySkinName(currentStatus),
+    skinSource: getDisplaySkinSource(currentStatus),
+    playbackMode: formatValue(currentStatus.playbackMode)
+  };
 
   if (currentStatus.state === RUNTIME_STATES.ERROR) {
-    statusText.textContent = currentStatus.errorStage
-      ? `运行异常：${currentStatus.errorStage}`
-      : (currentStatus.message || '运行异常');
+    renderPlaybackSummary({
+      ...sharedSummary,
+      detail: currentStatus.errorStage
+        ? `运行异常：${currentStatus.errorStage}`
+        : (currentStatus.message || '运行异常')
+    });
     return;
   }
 
   if (currentStatus.renderActive) {
-    statusText.textContent = currentStatus.adActive
-      ? '当前处于广告态，挂件会自动弱化。'
-      : '当前挂件已显示，控件出现时会自动减弱。';
+    renderPlaybackSummary({
+      ...sharedSummary,
+      detail: currentStatus.adActive
+        ? '当前处于广告态，挂件会自动弱化。'
+        : '当前挂件已显示，控件出现时会自动减弱。'
+    });
     return;
   }
 
-  statusText.textContent = currentStatus.message || '正在等待播放器稳定下来。';
+  renderPlaybackSummary({
+    ...sharedSummary,
+    detail: currentStatus.message || '正在等待播放器稳定下来。'
+  });
+}
+
+function isStatusFreshForTab(status, tab) {
+  const navigationStartedAt = getTabNavigationStartedAt(tab?.id);
+  if (!navigationStartedAt) return true;
+
+  const statusUpdatedAt = Number(status?.updatedAt || 0);
+  if (statusUpdatedAt >= navigationStartedAt) {
+    clearTabNavigationBoundary(tab?.id);
+    return true;
+  }
+
+  return false;
 }
 
 function applyPopupSnapshot({ settings, tab, status }) {
+  const fingerprint = JSON.stringify({
+    settings,
+    tab: tab
+      ? {
+        id: tab.id ?? null,
+        url: tab.url ?? '',
+        title: tab.title ?? '',
+        lastAccessed: tab.lastAccessed ?? 0,
+        status: tab.status ?? ''
+      }
+      : null,
+    status: status
+      ? {
+        pageUrl: status.pageUrl ?? '',
+        state: status.state ?? '',
+        renderActive: Boolean(status.renderActive),
+        enabled: Boolean(status.enabled),
+        updatedAt: status.updatedAt ?? 0,
+        lastSyncReason: status.lastSyncReason ?? ''
+      }
+      : null
+  });
+
+  if (fingerprint === lastAppliedSnapshotFingerprint) {
+    return;
+  }
+
+  lastAppliedSnapshotFingerprint = fingerprint;
   lastAppliedSnapshot = { settings, tab, status };
   currentSettings = settings;
   activeTab = tab;
@@ -309,10 +434,15 @@ async function readPopupSnapshot() {
     readStatus()
   ]);
 
+  const statusMatchesTab = statusBelongsToUrl(status, tab?.url || '');
+  const nextStatus = statusMatchesTab && isStatusFreshForTab(status, tab)
+    ? status
+    : null;
+
   return {
     settings,
     tab,
-    status: statusBelongsToUrl(status, tab?.url || '') ? status : null
+    status: nextStatus
   };
 }
 
@@ -322,6 +452,29 @@ async function refreshPopupView() {
   if (version !== viewRefreshVersion) return lastAppliedSnapshot;
   applyPopupSnapshot(snapshot);
   return snapshot;
+}
+
+function stopTransientRefreshBurst() {
+  if (!transientRefreshIntervalId) return;
+  window.clearInterval(transientRefreshIntervalId);
+  transientRefreshIntervalId = 0;
+  transientRefreshRemaining = 0;
+}
+
+function scheduleTransientRefreshBurst(steps = TRANSIENT_REFRESH_STEPS) {
+  transientRefreshRemaining = Math.max(transientRefreshRemaining, steps);
+  void refreshPopupView();
+
+  if (transientRefreshIntervalId) return;
+
+  transientRefreshIntervalId = window.setInterval(() => {
+    transientRefreshRemaining -= 1;
+    void refreshPopupView();
+
+    if (transientRefreshRemaining <= 0) {
+      stopTransientRefreshBurst();
+    }
+  }, TRANSIENT_REFRESH_INTERVAL_MS);
 }
 
 function snapshotMatchesExpectedState(snapshot, expectedSettings) {
@@ -425,26 +578,48 @@ for (const button of modeButtons) {
 
 chrome.storage.sync.onChanged?.addListener?.((changes, areaName) => {
   if (areaName !== 'sync' || !changes[STORAGE_KEY]) return;
-  void refreshPopupView();
+  scheduleTransientRefreshBurst();
 });
 
 chrome.storage.local.onChanged?.addListener?.((changes, areaName) => {
   if (areaName !== 'local' || !changes[STATUS_KEY]) return;
-  void refreshPopupView();
+  scheduleTransientRefreshBurst();
 });
 
 chrome.tabs.onActivated?.addListener?.(() => {
-  void refreshPopupView();
+  scheduleTransientRefreshBurst();
 });
 
 chrome.tabs.onUpdated?.addListener?.((tabId, changeInfo) => {
-  if (changeInfo.status === 'complete' || changeInfo.url) {
-    void refreshPopupView();
+  if (changeInfo.status === 'loading' || changeInfo.url) {
+    markTabNavigationStarted(tabId);
   }
+
+  if (changeInfo.status === 'complete' || changeInfo.status === 'loading' || changeInfo.url) {
+    scheduleTransientRefreshBurst();
+  }
+});
+
+window.addEventListener('focus', () => {
+  scheduleTransientRefreshBurst();
+});
+
+document.addEventListener('visibilitychange', () => {
+  if (document.visibilityState === 'visible') {
+    scheduleTransientRefreshBurst();
+    return;
+  }
+
+  stopTransientRefreshBurst();
+});
+
+window.addEventListener('beforeunload', () => {
+  stopTransientRefreshBurst();
 });
 
 void (async function initPopup() {
   skinRegistry = await loadSkinRegistry();
   populateSkinSelect();
   await refreshPopupView();
+  scheduleTransientRefreshBurst();
 })();
