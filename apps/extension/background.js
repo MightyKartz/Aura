@@ -2,14 +2,24 @@ import { sendForceSyncToTab } from './runtime/messages.js';
 import { toggleEnabled, readSettings, writeSettings } from './runtime/settings.js';
 import { findSiteAdapter } from './runtime/site-adapters.js';
 
-const AURA_URL_PATTERNS = ['https://v.qq.com/*'];
-
 function isSupportedTab(tab) {
   return Number.isInteger(tab?.id) && Boolean(findSiteAdapter(tab.url || ''));
 }
 
+async function removeAuraCssFromTab(tabId) {
+  try {
+    await chrome.scripting.removeCSS({
+      target: { tabId },
+      files: ['content.css']
+    });
+  } catch {
+    // removeCSS throws when the stylesheet was never programmatically inserted.
+  }
+}
+
 async function injectAuraIntoTab(tabId) {
   try {
+    await removeAuraCssFromTab(tabId);
     await chrome.scripting.insertCSS({
       target: { tabId },
       files: ['content.css']
@@ -41,25 +51,9 @@ async function ensureAuraRuntimeOnTab(tab, reason) {
   return true;
 }
 
-async function reinjectAuraIntoExistingTencentTabs() {
-  if (!chrome.tabs?.query || !chrome.scripting?.executeScript) return;
-
-  try {
-    const tabs = await chrome.tabs.query({ url: AURA_URL_PATTERNS });
-    await Promise.all(tabs.filter(isSupportedTab).map((tab) => injectAuraIntoTab(tab.id)));
-  } catch (error) {
-    console.warn('[Aura background] failed to reinject into existing tabs:', error);
-  }
-}
-
 chrome.runtime.onInstalled.addListener(async () => {
   const settings = await readSettings();
   await writeSettings(settings);
-  await reinjectAuraIntoExistingTencentTabs();
-});
-
-chrome.runtime.onStartup?.addListener(() => {
-  void reinjectAuraIntoExistingTencentTabs();
 });
 
 chrome.commands.onCommand.addListener(async (command) => {

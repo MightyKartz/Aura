@@ -71,6 +71,34 @@
           </div>
           <div class="field__hint">建议整集常开时使用标准模式。</div>
         </div>
+
+        <label class="field">
+          <span class="field__label">挂件大小</span>
+          <div class="scale-control">
+            <input id="sizeScale" type="range" min="0.85" max="1.25" step="0.05" value="1" />
+            <strong id="sizeScaleValue" class="scale-control__value">100%</strong>
+          </div>
+          <div class="field__hint">等比放大或缩小左上氛围与右下角色，刷新后会自动记忆。</div>
+        </label>
+      </section>
+
+      <section class="panel panel--quiet">
+        <div class="section-title">轻工具 MVP</div>
+        <div class="utility-summary">
+          <div class="status-item">
+            <span class="status-item__label">时刻标记</span>
+            <strong id="utilityMarkCount" class="status-item__value">0 处</strong>
+          </div>
+          <div class="status-item">
+            <span class="status-item__label">最近标记</span>
+            <strong id="utilityRecentMark" class="status-item__value">--</strong>
+          </div>
+          <div class="status-item">
+            <span class="status-item__label">回看点</span>
+            <strong id="utilityResumePoint" class="status-item__value">--</strong>
+          </div>
+        </div>
+        <button id="markMoment" class="utility-button" type="button">标记这一刻</button>
       </section>
 
       <section class="panel panel--quiet">
@@ -78,6 +106,7 @@
           <span class="shortcut-row__label">快捷键</span>
           <code class="shortcut-row__value">Win: Ctrl+Shift+A ｜ Mac: Command+Shift+A</code>
         </div>
+        <button id="openSkinStudio" class="utility-button" type="button">打开皮肤预览台</button>
         <details class="debug-panel">
           <summary>查看调试信息</summary>
           <div class="detail-list">
@@ -100,6 +129,34 @@
             <div class="detail-row">
               <span class="detail-label">skinContext</span>
               <code id="diagnosticSkinContext" class="detail-value">--</code>
+            </div>
+            <div class="detail-row">
+              <span class="detail-label">skinCategory</span>
+              <code id="diagnosticSkinCategory" class="detail-value">--</code>
+            </div>
+            <div class="detail-row">
+              <span class="detail-label">characterTheme</span>
+              <code id="diagnosticCharacterThemeName" class="detail-value">--</code>
+            </div>
+            <div class="detail-row">
+              <span class="detail-label">archetype</span>
+              <code id="diagnosticCharacterArchetype" class="detail-value">--</code>
+            </div>
+            <div class="detail-row">
+              <span class="detail-label">themeLayer</span>
+              <code id="diagnosticThemeLayer" class="detail-value">--</code>
+            </div>
+            <div class="detail-row">
+              <span class="detail-label">atmosphereLabel</span>
+              <code id="diagnosticAtmosphereLabel" class="detail-value">--</code>
+            </div>
+            <div class="detail-row">
+              <span class="detail-label">narrativeLabel</span>
+              <code id="diagnosticNarrativeLabel" class="detail-value">--</code>
+            </div>
+            <div class="detail-row">
+              <span class="detail-label">microcopyTone</span>
+              <code id="diagnosticMicrocopyTone" class="detail-value">--</code>
             </div>
             <div class="detail-row">
               <span class="detail-label">lastSyncReason</span>
@@ -126,8 +183,24 @@
               <code id="diagnosticErrorMessage" class="detail-value">--</code>
             </div>
             <div class="detail-row">
+              <span class="detail-label">statusStorageKey</span>
+              <code id="diagnosticStatusStorageKey" class="detail-value detail-value--wrap">--</code>
+            </div>
+            <div class="detail-row">
+              <span class="detail-label">frameId</span>
+              <code id="diagnosticFrameId" class="detail-value">--</code>
+            </div>
+            <div class="detail-row">
+              <span class="detail-label">statusSeq</span>
+              <code id="diagnosticStatusSeq" class="detail-value">--</code>
+            </div>
+            <div class="detail-row">
+              <span class="detail-label">updatedAt</span>
+              <code id="diagnosticUpdatedAt" class="detail-value">--</code>
+            </div>
+            <div class="detail-row">
               <span class="detail-label">pageUrl</span>
-              <code id="diagnosticPageUrl" class="detail-value">--</code>
+              <code id="diagnosticPageUrl" class="detail-value detail-value--wrap">--</code>
             </div>
           </div>
         </details>

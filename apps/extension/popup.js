@@ -1,8 +1,22 @@
-import { sendForceSyncToTab } from './runtime/messages.js';
-import { DEFAULT_SETTINGS, STORAGE_KEY, readSettings, writeSettings } from './runtime/settings.js';
+import { sendForceSyncToTab, sendMarkMomentToTab } from './runtime/messages.js';
+import {
+  DEFAULT_SETTINGS,
+  SIZE_SCALE_MAX,
+  SIZE_SCALE_MIN,
+  STORAGE_KEY,
+  normalizeSizeScale,
+  readSettings,
+  writeSettings
+} from './runtime/settings.js';
 import { loadSkinRegistry, getDefaultSkin, getSkinById } from './runtime/skin-registry.js';
 import { getSiteSupport } from './runtime/site-adapters.js';
-import { STATUS_KEY, readStatus, RUNTIME_STATES, statusBelongsToUrl } from './runtime/status.js';
+import {
+  createStatusStorageKey,
+  readStatusForUrl,
+  RUNTIME_STATES,
+  isAuraStatusStorageKey,
+  migrateLegacyStatus
+} from './runtime/status.js';
 
 let skinRegistry = {
   version: 1,
@@ -41,19 +55,37 @@ const themeModeSelect = document.getElementById('themeMode');
 const themeModeHint = document.getElementById('themeModeHint');
 const skinSelect = document.getElementById('skinSelect');
 const skinDescription = document.getElementById('skinDescription');
+const sizeScaleInput = document.getElementById('sizeScale');
+const sizeScaleValue = document.getElementById('sizeScaleValue');
 const modeButtons = Array.from(document.querySelectorAll('[data-mode]'));
 const diagnosticVideoDetected = document.getElementById('diagnosticVideoDetected');
 const diagnosticContainerSource = document.getElementById('diagnosticContainerSource');
 const diagnosticControlsVisible = document.getElementById('diagnosticControlsVisible');
 const diagnosticAdActive = document.getElementById('diagnosticAdActive');
 const diagnosticSkinContext = document.getElementById('diagnosticSkinContext');
+const diagnosticSkinCategory = document.getElementById('diagnosticSkinCategory');
+const diagnosticCharacterThemeName = document.getElementById('diagnosticCharacterThemeName');
+const diagnosticCharacterArchetype = document.getElementById('diagnosticCharacterArchetype');
+const diagnosticThemeLayer = document.getElementById('diagnosticThemeLayer');
+const diagnosticAtmosphereLabel = document.getElementById('diagnosticAtmosphereLabel');
+const diagnosticNarrativeLabel = document.getElementById('diagnosticNarrativeLabel');
+const diagnosticMicrocopyTone = document.getElementById('diagnosticMicrocopyTone');
 const diagnosticLastSyncReason = document.getElementById('diagnosticLastSyncReason');
 const diagnosticModuleLoadState = document.getElementById('diagnosticModuleLoadState');
 const diagnosticRegistryLoadState = document.getElementById('diagnosticRegistryLoadState');
 const diagnosticSyncState = document.getElementById('diagnosticSyncState');
 const diagnosticErrorStage = document.getElementById('diagnosticErrorStage');
 const diagnosticErrorMessage = document.getElementById('diagnosticErrorMessage');
+const diagnosticStatusStorageKey = document.getElementById('diagnosticStatusStorageKey');
+const diagnosticFrameId = document.getElementById('diagnosticFrameId');
+const diagnosticStatusSeq = document.getElementById('diagnosticStatusSeq');
+const diagnosticUpdatedAt = document.getElementById('diagnosticUpdatedAt');
 const diagnosticPageUrl = document.getElementById('diagnosticPageUrl');
+const utilityMarkCount = document.getElementById('utilityMarkCount');
+const utilityRecentMark = document.getElementById('utilityRecentMark');
+const utilityResumePoint = document.getElementById('utilityResumePoint');
+const markMomentButton = document.getElementById('markMoment');
+const openSkinStudioButton = document.getElementById('openSkinStudio');
 
 function formatValue(value, fallback = '--') {
   if (value === null || value === undefined || value === '') return fallback;
@@ -63,6 +95,24 @@ function formatValue(value, fallback = '--') {
 function formatBoolean(value) {
   if (value === null || value === undefined) return '--';
   return value ? 'true' : 'false';
+}
+
+function formatTimestamp(value) {
+  const numeric = Number(value);
+  if (!Number.isFinite(numeric) || numeric <= 0) return '--';
+
+  try {
+    return new Date(numeric).toLocaleString('zh-CN', {
+      hour12: false
+    });
+  } catch {
+    return String(value);
+  }
+}
+
+function formatMarkCount(value) {
+  const count = Number(value || 0);
+  return `${count > 0 ? count : 0} 处`;
 }
 
 function getFallbackSkin() {
@@ -195,6 +245,19 @@ function renderModeButtons(mode) {
   }
 }
 
+function formatSizeScale(value) {
+  return `${Math.round(normalizeSizeScale(value) * 100)}%`;
+}
+
+function renderSizeScale() {
+  if (!sizeScaleInput || !sizeScaleValue) return;
+  const scale = normalizeSizeScale(currentSettings.sizeScale);
+  sizeScaleInput.min = String(SIZE_SCALE_MIN);
+  sizeScaleInput.max = String(SIZE_SCALE_MAX);
+  sizeScaleInput.value = String(scale);
+  sizeScaleValue.textContent = formatSizeScale(scale);
+}
+
 function populateSkinSelect() {
   skinSelect.innerHTML = '';
 
@@ -235,11 +298,24 @@ function renderThemeModeUI() {
 }
 
 function renderDiagnostics(status) {
+  diagnosticStatusStorageKey.textContent = activeTab?.url
+    ? createStatusStorageKey(activeTab.url)
+    : '--';
+  diagnosticFrameId.textContent = formatValue(status?.frameId);
+  diagnosticStatusSeq.textContent = formatValue(status?.statusSeq);
+  diagnosticUpdatedAt.textContent = formatTimestamp(status?.updatedAt);
   diagnosticVideoDetected.textContent = formatBoolean(status?.videoDetected);
   diagnosticContainerSource.textContent = formatValue(status?.containerSource);
   diagnosticControlsVisible.textContent = formatBoolean(status?.controlsVisible);
   diagnosticAdActive.textContent = formatBoolean(status?.adActive);
   diagnosticSkinContext.textContent = formatValue(status?.skinContext);
+  diagnosticSkinCategory.textContent = formatValue(status?.skinCategory);
+  diagnosticCharacterThemeName.textContent = formatValue(status?.characterThemeName);
+  diagnosticCharacterArchetype.textContent = formatValue(status?.characterArchetype);
+  diagnosticThemeLayer.textContent = formatValue(status?.themeLayer);
+  diagnosticAtmosphereLabel.textContent = formatValue(status?.atmosphereLabel);
+  diagnosticNarrativeLabel.textContent = formatValue(status?.narrativeLabel);
+  diagnosticMicrocopyTone.textContent = formatValue(status?.microcopyTone);
   diagnosticLastSyncReason.textContent = formatValue(status?.lastSyncReason);
   diagnosticModuleLoadState.textContent = formatValue(status?.moduleLoadState);
   diagnosticRegistryLoadState.textContent = formatValue(status?.registryLoadState);
@@ -275,11 +351,21 @@ function renderPlaybackSummary({
   statusText.textContent = detail;
 }
 
+function renderUtilitySummary(status = currentStatus) {
+  utilityMarkCount.textContent = formatMarkCount(status?.markCount);
+  utilityRecentMark.textContent = formatValue(status?.recentMarkLabel);
+  utilityResumePoint.textContent = formatValue(status?.resumePointLabel);
+
+  const support = getSiteSupport(activeTab?.url || '');
+  markMomentButton.disabled = !activeTab?.id || !support.supported || !support.playback || !currentSettings.enabled;
+}
+
 function renderActiveTabState() {
   const support = getSiteSupport(activeTab?.url || '');
 
   renderRuntimeBadge(currentStatus);
   renderDiagnostics(currentStatus);
+  renderUtilitySummary(currentStatus);
   updateSkinSelectionUI(currentStatus);
 
   if (!activeTab) {
@@ -422,22 +508,22 @@ function applyPopupSnapshot({ settings, tab, status }) {
   currentStatus = status;
   enabledInput.checked = currentSettings.enabled;
   renderModeButtons(currentSettings.mode);
+  renderSizeScale();
   renderThemeModeUI();
   updateSkinSelectionUI();
   renderActiveTabState();
 }
 
 async function readPopupSnapshot() {
-  const [settings, tab, status] = await Promise.all([
+  const [settings, tab] = await Promise.all([
     readSettings(),
-    getActiveTab(),
-    readStatus()
+    getActiveTab()
   ]);
 
-  const statusMatchesTab = statusBelongsToUrl(status, tab?.url || '');
-  const nextStatus = statusMatchesTab && isStatusFreshForTab(status, tab)
-    ? status
+  const status = tab?.url
+    ? await readStatusForUrl(tab.url)
     : null;
+  const nextStatus = status && isStatusFreshForTab(status, tab) ? status : null;
 
   return {
     settings,
@@ -521,6 +607,13 @@ async function syncActiveTab(reason) {
   await sendForceSyncToTab(tab.id, reason);
 }
 
+async function markCurrentMoment() {
+  const tab = await getActiveTab();
+  if (!tab?.id) return;
+  await sendMarkMomentToTab(tab.id, 'popup:mark');
+  scheduleTransientRefreshBurst();
+}
+
 async function updateSettings(nextSettings, reason) {
   const normalizedSettings = await writeSettings(nextSettings);
   await refreshPopupView();
@@ -564,6 +657,20 @@ skinSelect.addEventListener('change', () => {
   );
 });
 
+sizeScaleInput?.addEventListener('input', () => {
+  sizeScaleValue.textContent = formatSizeScale(sizeScaleInput.value);
+});
+
+sizeScaleInput?.addEventListener('change', () => {
+  void updateSettings(
+    {
+      ...currentSettings,
+      sizeScale: normalizeSizeScale(sizeScaleInput.value)
+    },
+    'popup:size-scale'
+  );
+});
+
 for (const button of modeButtons) {
   button.addEventListener('click', () => {
     void updateSettings(
@@ -576,13 +683,23 @@ for (const button of modeButtons) {
   });
 }
 
+openSkinStudioButton?.addEventListener('click', () => {
+  void chrome.tabs.create({
+    url: chrome.runtime.getURL('skin-studio.html')
+  });
+});
+
+markMomentButton?.addEventListener('click', () => {
+  void markCurrentMoment();
+});
+
 chrome.storage.sync.onChanged?.addListener?.((changes, areaName) => {
   if (areaName !== 'sync' || !changes[STORAGE_KEY]) return;
   scheduleTransientRefreshBurst();
 });
 
 chrome.storage.local.onChanged?.addListener?.((changes, areaName) => {
-  if (areaName !== 'local' || !changes[STATUS_KEY]) return;
+  if (areaName !== 'local' || !Object.keys(changes).some((key) => isAuraStatusStorageKey(key))) return;
   scheduleTransientRefreshBurst();
 });
 
@@ -618,6 +735,7 @@ window.addEventListener('beforeunload', () => {
 });
 
 void (async function initPopup() {
+  await migrateLegacyStatus();
   skinRegistry = await loadSkinRegistry();
   populateSkinSelect();
   await refreshPopupView();

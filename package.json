@@ -7,7 +7,12 @@
   "scripts": {
     "dev": "node scripts/dev.mjs",
     "build": "node scripts/build.mjs",
+    "preview": "node scripts/preview.mjs",
+    "qa:extension": "node scripts/qa-extension.mjs",
+    "qa:reload": "node scripts/qa-reload.mjs",
+    "skin:check": "node scripts/skin-workflow-check.mjs",
     "smoke": "node scripts/smoke.mjs",
+    "test": "node --test tests/runtime/*.test.js",
     "clean": "rm -rf dist"
   }
 }

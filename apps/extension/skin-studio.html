@@ -1,0 +1,83 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Aura Skin Studio</title>
+    <link rel="stylesheet" href="./content.css" />
+    <link rel="stylesheet" href="./skin-studio.css" />
+  </head>
+  <body>
+    <main class="studio">
+      <aside class="studio__sidebar">
+        <div class="studio__hero">
+          <div class="studio__eyebrow">Aura</div>
+          <h1 class="studio__title">主题预览台</h1>
+          <p class="studio__subtitle">集中检查角落挂件的构图、氛围和动效，不再暴露底层素材路径与调试字段。</p>
+        </div>
+
+        <section class="studio-panel">
+          <div class="studio-panel__title">皮肤列表</div>
+          <div id="skinList" class="skin-list" role="listbox" aria-label="Aura 皮肤列表"></div>
+        </section>
+
+        <section class="studio-panel">
+          <div class="studio-panel__title">场景控制</div>
+          <label class="studio-field">
+            <span>动效模式</span>
+            <select id="modeSelect">
+              <option value="quiet">安静</option>
+              <option value="standard" selected>标准</option>
+              <option value="lively">活泼</option>
+            </select>
+          </label>
+          <label class="studio-field">
+            <span>播放场景</span>
+            <select id="playbackModeSelect">
+              <option value="windowed" selected>窗口态</option>
+              <option value="web-fullscreen">网页全屏</option>
+              <option value="native-fullscreen">原生全屏</option>
+            </select>
+          </label>
+          <div class="studio-toggles">
+            <label><input id="pausedToggle" type="checkbox" /> 暂停态</label>
+            <label><input id="controlsToggle" type="checkbox" /> 控件浮现</label>
+            <label><input id="adToggle" type="checkbox" /> 广告弱化</label>
+            <label><input id="attentionToggle" type="checkbox" checked /> 指针活跃</label>
+          </div>
+        </section>
+
+        <section class="studio-panel studio-panel--meta">
+          <div class="studio-panel__title">主题摘要</div>
+          <div id="skinMeta" class="skin-meta">加载中...</div>
+        </section>
+      </aside>
+
+      <section class="studio__stage-wrap">
+        <div class="stage-toolbar">
+          <div class="stage-toolbar__primary">
+            <strong id="stageSkinName">默认小猫</strong>
+            <span id="stageMotionPreset" class="stage-pill">soft</span>
+            <div class="stage-runtime">
+              <span id="stageMotionState" class="stage-pill stage-pill--ghost">idle-soft</span>
+              <span id="stageMotionFrames" class="stage-pill stage-pill--ghost">base-only</span>
+              <span id="stageActionState" class="stage-pill stage-pill--ghost">动作帧 idle</span>
+            </div>
+          </div>
+          <code id="stageLayoutLabel" class="stage-code">窗口态 · 标准模式</code>
+        </div>
+        <div class="stage-shell">
+          <div id="previewPlayer" class="preview-player">
+            <div class="preview-player__guide">
+              <div class="preview-player__badge">预览舞台</div>
+              <div class="preview-player__title">检查角落挂件是否稳、准、轻</div>
+              <div class="preview-player__subcopy">观察人物与氛围素材的比例、留白和动效节奏，确认在常见观影场景下不会遮挡重点信息。</div>
+            </div>
+          </div>
+        </div>
+      </section>
+    </main>
+
+    <script type="module" src="./skin-studio.js"></script>
+  </body>
+  </html>

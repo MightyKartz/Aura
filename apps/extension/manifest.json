@@ -34,8 +34,12 @@
   },
   "web_accessible_resources": [
     {
-      "resources": ["themes/*", "theme-registry/builtin-skins.json", "runtime/*.js"],
+      "resources": ["themes/*", "theme-registry/builtin-skins.json"],
       "matches": ["https://v.qq.com/*"]
+    },
+    {
+      "resources": ["runtime/*.js"],
+      "matches": ["<all_urls>"]
     }
   ]
 }

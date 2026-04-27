@@ -244,6 +244,25 @@ select:disabled {
   border-color: rgba(255, 255, 255, 0.16);
 }
 
+.scale-control {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 12px;
+}
+
+.scale-control input[type="range"] {
+  width: 100%;
+  accent-color: var(--warm);
+}
+
+.scale-control__value {
+  min-width: 44px;
+  color: #ffe7be;
+  font-size: 13px;
+  text-align: right;
+}
+
 .shortcut-row {
   display: flex;
   justify-content: space-between;
@@ -257,6 +276,31 @@ select:disabled {
   font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
   font-size: 11px;
   color: #eef4fc;
+}
+
+.detail-value--wrap {
+  white-space: normal;
+  overflow-wrap: anywhere;
+  word-break: break-word;
+  text-align: right;
+}
+
+.utility-button {
+  width: 100%;
+  margin: 0 0 10px;
+  padding: 10px 12px;
+  border: 1px solid rgba(243, 181, 98, 0.24);
+  border-radius: 12px;
+  background: linear-gradient(145deg, rgba(243, 181, 98, 0.15), rgba(123, 205, 246, 0.08));
+  color: var(--text);
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.utility-summary {
+  display: grid;
+  gap: 10px;
+  margin-bottom: 10px;
 }
 
 .debug-panel {

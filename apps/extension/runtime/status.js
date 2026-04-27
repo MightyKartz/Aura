@@ -1,4 +1,13 @@
 export const STATUS_KEY = 'aura:mvp:status';
+export const STATUS_KEY_PREFIX = `${STATUS_KEY}:`;
+
+import {
+  getCharacterTheme,
+  getCharacterThemeAtmosphereLabel,
+  getCharacterThemeNarrativeLabel,
+  getMicrocopyTone
+} from './character-theme.js';
+
 export const RUNTIME_STATES = Object.freeze({
   DISABLED: 'disabled',
   IDLE: 'idle',
@@ -17,19 +26,61 @@ export function normalizeComparableUrl(url = '') {
   }
 }
 
-export function statusBelongsToUrl(status, url = '') {
-  if (!status || !url) return false;
-  return normalizeComparableUrl(status.pageUrl) === normalizeComparableUrl(url);
+function isStatusPayload(value) {
+  return Boolean(value && typeof value === 'object' && typeof value.pageUrl === 'string');
 }
 
-export async function readStatus(storageArea = chrome.storage.local) {
-  const result = await storageArea.get(STATUS_KEY);
-  return result?.[STATUS_KEY] ?? null;
+export function createStatusStorageKey(url = '') {
+  const normalizedUrl = normalizeComparableUrl(url);
+  return normalizedUrl ? `${STATUS_KEY_PREFIX}${encodeURIComponent(normalizedUrl)}` : '';
+}
+
+export function isAuraStatusStorageKey(key = '') {
+  return key.startsWith(STATUS_KEY_PREFIX);
+}
+
+async function removeLegacyStatusKey(storageArea = chrome.storage.local) {
+  if (typeof storageArea.remove === 'function') {
+    await storageArea.remove(STATUS_KEY);
+    return;
+  }
+
+  await storageArea.set({ [STATUS_KEY]: null });
+}
+
+export async function migrateLegacyStatus(storageArea = chrome.storage.local) {
+  const legacyResult = await storageArea.get(STATUS_KEY);
+  const legacyStatus = legacyResult?.[STATUS_KEY] ?? null;
+  if (!isStatusPayload(legacyStatus)) return false;
+
+  const key = createStatusStorageKey(legacyStatus.pageUrl);
+  if (!key) {
+    await removeLegacyStatusKey(storageArea);
+    return false;
+  }
+
+  const scopedResult = await storageArea.get(key);
+  const scopedStatus = scopedResult?.[key] ?? null;
+  const shouldWriteScopedStatus = !isStatusPayload(scopedStatus)
+    || Number(scopedStatus.updatedAt || 0) < Number(legacyStatus.updatedAt || 0);
+
+  if (shouldWriteScopedStatus) {
+    await storageArea.set({
+      [key]: legacyStatus
+    });
+  }
+
+  await removeLegacyStatusKey(storageArea);
+  return true;
 }
 
 export async function readStatusForUrl(url, storageArea = chrome.storage.local) {
-  const status = await readStatus(storageArea);
-  return statusBelongsToUrl(status, url) ? status : null;
+  const key = createStatusStorageKey(url);
+  if (!key) return null;
+
+  const result = await storageArea.get(key);
+  const scopedStatus = result?.[key] ?? null;
+  return isStatusPayload(scopedStatus) ? scopedStatus : null;
 }
 
 export function createStatusReporter({
@@ -38,7 +89,8 @@ export function createStatusReporter({
   getRenderMode = () => 'corner-decor',
   getPageUrl = () => location.href,
   getNow = () => Date.now(),
-  writeStatus = (payload) => chrome.storage.local.set(payload)
+  writeStatus = (payload) => chrome.storage.local.set(payload),
+  migrateLegacy = () => migrateLegacyStatus(chrome.storage.local)
 } = {}) {
   let lastStatusFingerprint = '';
   let statusSequence = 0;
@@ -50,13 +102,15 @@ export function createStatusReporter({
     writeInFlight = true;
 
     try {
+      await migrateLegacy();
       while (pendingStatus) {
         const nextStatus = pendingStatus;
         pendingStatus = null;
         statusSequence += 1;
+        const key = createStatusStorageKey(nextStatus.pageUrl);
 
         await writeStatus({
-          [STATUS_KEY]: {
+          [key]: {
             ...nextStatus,
             updatedAt: getNow(),
             statusSeq: statusSequence
@@ -74,7 +128,7 @@ export function createStatusReporter({
   }
 
   function commitStatus(payload) {
-    const pageUrl = getPageUrl();
+    const pageUrl = normalizeComparableUrl(getPageUrl());
     const normalized = {
       frameId,
       frame: 'top',
@@ -128,6 +182,7 @@ export function createStatusReporter({
   }) {
     const containerRect = container.getBoundingClientRect();
     const videoRect = video instanceof HTMLVideoElement ? video.getBoundingClientRect() : null;
+    const characterTheme = getCharacterTheme(skin);
     const message = visualState.adActive
       ? `${skin.name} 已在广告态弱化显示`
       : `已显示 ${skin.name}`;
@@ -143,6 +198,13 @@ export function createStatusReporter({
       skinName: skin.name,
       skinSource,
       skinContext: showContext,
+      skinCategory: skin.category || 'default',
+      characterArchetype: characterTheme?.archetype || '',
+      characterThemeName: characterTheme?.themeName || '',
+      themeLayer: characterTheme?.layer || '',
+      atmosphereLabel: getCharacterThemeAtmosphereLabel(skin),
+      narrativeLabel: getCharacterThemeNarrativeLabel(skin),
+      microcopyTone: getMicrocopyTone(skin),
       videoDetected: video instanceof HTMLVideoElement,
       containerDetected: true,
       containerSource,

@@ -1,3 +1,7 @@
+import { validateSkinRegistry } from './skin-contract.js';
+import { resolveRuntimeAssetUrl } from './url-resolver.js';
+import { scoreSkinMatch } from './character-theme.js';
+
 export function createFallbackRegistry() {
   return {
     version: 1,
@@ -17,7 +21,10 @@ export function createFallbackRegistry() {
           primary: '#fff1cf',
           accent: '#ffd45f',
           glow: '#ffcf5a'
-        }
+        },
+        recommendedMode: 'standard',
+        motionPreset: 'soft',
+        tags: ['默认', '通用', '柔和']
       }
     ]
   };
@@ -27,7 +34,7 @@ export const SKIN_REGISTRY_PATH = 'theme-registry/builtin-skins.json';
 
 export async function loadSkinRegistry({
   fetchImpl = fetch,
-  getRuntimeUrl = (path) => chrome.runtime.getURL(path)
+  getRuntimeUrl = (path) => resolveRuntimeAssetUrl(path, import.meta.url)
 } = {}) {
   try {
     const response = await fetchImpl(getRuntimeUrl(SKIN_REGISTRY_PATH), {
@@ -38,7 +45,8 @@ export async function loadSkinRegistry({
       throw new Error(`HTTP ${response.status}`);
     }
 
-    return await response.json();
+    const registry = await response.json();
+    return validateSkinRegistry(registry, { label: 'runtime-registry' });
   } catch (error) {
     console.warn('[Aura] failed to load skin registry, using fallback:', error);
     return createFallbackRegistry();
@@ -53,6 +61,12 @@ export function getDefaultSkin(registry) {
   return getSkinById(registry, registry?.defaultSkinId) ?? registry?.skins?.[0] ?? null;
 }
 
+function getAutoSource(skin) {
+  if (skin?.category === 'character') return 'auto-character-theme';
+  if (skin?.category === 'genre') return 'auto-genre';
+  return 'auto-default';
+}
+
 export function recommendSkinByText(registry, text = '') {
   const normalized = String(text || '').trim();
   if (!normalized) return getDefaultSkin(registry);
@@ -61,10 +75,7 @@ export function recommendSkinByText(registry, text = '') {
     .filter((skin) => skin.category !== 'default')
     .map((skin) => ({
       skin,
-      score: (skin.match?.keywords ?? []).reduce(
-        (sum, keyword) => sum + (normalized.includes(keyword) ? 1 : 0),
-        0
-      )
+      score: scoreSkinMatch(skin, normalized)
     }))
     .sort((a, b) => b.score - a.score);
 
@@ -82,6 +93,6 @@ export function resolveSkin(registry, settings, contextText = '') {
   const recommended = recommendSkinByText(registry, contextText);
   return {
     skin: recommended,
-    source: recommended?.category === 'genre' ? 'auto-genre' : 'auto-default'
+    source: getAutoSource(recommended)
   };
 }

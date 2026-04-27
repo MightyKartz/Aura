@@ -1,12 +1,19 @@
 import { createTencentDetector, isTencentPlaybackUrl } from './tencent-detect.js';
 
-const TENCENT_URL_RE = /^https:\/\/v\.qq\.com\//i;
+function isTencentVideoUrl(url = '') {
+  try {
+    const parsed = new URL(String(url || ''));
+    return parsed.protocol === 'https:' && parsed.hostname === 'v.qq.com';
+  } catch {
+    return /^https:\/\/v\.qq\.com(?::\d+)?\//i.test(String(url || ''));
+  }
+}
 
 export const TENCENT_VIDEO_ADAPTER = Object.freeze({
   id: 'tencent-video',
   label: '腾讯视频',
   matchesUrl(url = '') {
-    return TENCENT_URL_RE.test(String(url || ''));
+    return isTencentVideoUrl(url);
   },
   isPlaybackPage(url = '') {
     return isTencentPlaybackUrl(url);
