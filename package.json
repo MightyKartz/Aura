@@ -6,6 +6,8 @@
   "description": "Aura Chrome extension MVP for corner-based animated theme decor on Tencent Video.",
   "scripts": {
     "dev": "node scripts/dev.mjs",
+    "desktop:dev": "electron apps/desktop/main.mjs",
+    "desktop:smoke": "node scripts/desktop-smoke.mjs",
     "build": "node scripts/build.mjs",
     "preview": "node scripts/preview.mjs",
     "qa:extension": "node scripts/qa-extension.mjs",
@@ -14,5 +16,8 @@
     "smoke": "node scripts/smoke.mjs",
     "test": "node --test tests/runtime/*.test.js",
     "clean": "rm -rf dist"
+  },
+  "devDependencies": {
+    "electron": "^42.4.1"
   }
 }
