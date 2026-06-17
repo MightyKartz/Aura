@@ -6,7 +6,7 @@ Check:
 
 - branch and diff scope
 - no destructive or unrelated changes
-- no microphone/cloud/LLM/pet-system regressions
+- no voice/chat/commentary/microphone/cloud/LLM/pet-system regressions
 - required files exist
 - verification commands pass
 - PR description contains scope, tests, risks, non-goals, and validation handoff
@@ -19,5 +19,13 @@ npm run build
 npm run smoke
 npm run desktop:smoke
 ```
+
+Silent-watch scan:
+
+```bash
+rg -n "\b(getUserMedia|SpeechRecognition|webkitSpeechRecognition|speechSynthesis|SpeechSynthesis|microphone|mic|transcript|whisper|TTS|tts|voice|LLM|chat|commentary)\b|subtitle analysis|dialogue classification" apps packages scripts docs .codex AGENTS.md
+```
+
+Matches are acceptable only when they document a non-goal or validation guardrail. If a match introduces a desktop companion capability for voice, transcription, chat, or commentary, classify the PR as `Blocked`.
 
 Classify the PR as `Blocked`, `Pass but weak`, or `Merge candidate`. Do not merge without explicit user approval.
