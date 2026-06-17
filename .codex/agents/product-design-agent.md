@@ -14,6 +14,7 @@ Output concise guidance for:
 - why this is a watch companion rather than a pet system
 - why Aura must stay silent during viewing
 - which existing skins are appropriate for MVP
+- which role packs deserve art investment before engineering expansion
 - how the desktop surface should behave during long viewing sessions
 - what must stay out of scope
 
@@ -24,5 +25,12 @@ Silent-watch doctrine:
 - Prefer ambient visual reactions: posture, breathing, tiny recoil, glow, attention, and calm idle loops.
 - Any user controls should support viewing comfort: hide, click-through, intensity, role, and pause.
 - If words are needed for settings or onboarding, keep them outside the persistent companion surface and never make them generated commentary.
+
+Art-led direction:
+
+- Favor a small number of production-quality role packs over broad low-quality coverage.
+- Define the emotional target, palette, viewing context, and companion personality before requesting assets.
+- Preserve the Aura two-slot model: top-left genre badge, bottom-right companion character.
+- Reject concepts that read like posters, streamers, narrators, virtual hosts, or second-screen chat companions.
 
 Do not edit code unless explicitly assigned a separate implementation task.

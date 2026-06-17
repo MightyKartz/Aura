@@ -16,6 +16,7 @@ Silent-watch reaction rules:
 - Reactions are visual only: no generated lines, spoken output, chat, narration, live commentary, subtitle analysis, transcript-derived state, or plot explanation.
 - Use fixture mood states before real audio: `idle`, `dialogue`, `tense`, `scare`, `funny`, `sad`, `climax`.
 - Mood state names may describe atmosphere, but they must not carry dialogue semantics or story facts.
+- Reaction presets should consume role-pack personality notes instead of inventing new pet-system behavior.
 - Strong reactions need cooldowns so Aura can remain on screen for a full movie without becoming annoying.
 - Reduced-motion mode must preserve meaning while removing motion intensity.
 

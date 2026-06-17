@@ -24,17 +24,18 @@ Aura stays visible for a whole viewing session without asking for attention. The
 | --- | --- | --- | --- | --- |
 | 1 | Orchestrator | docs, PR metadata | Stacked PR plan and handoff | Diff contains only intended files |
 | 2 | Desktop Shell Agent | `apps/desktop/**` | Reliability pass for fullscreen, multi-display, tray, shortcuts | Manual QA checklist updated and smoke passes |
-| 3 | Product Design Agent | docs/design, docs/engineering | Silent companion UX rules and role mood map | No voice/chat/commentary affordances |
+| 3 | Product Design Agent + Art Production Agent | docs/design, docs/engineering, asset prompts | Silent companion UX rules, role mood map, and production asset brief | No voice/chat/commentary affordances; two-slot art model preserved |
 | 4 | Reaction Motion Agent | `packages/aura-core/**`, tests | Fixture mood engine and reaction tuning | Mood states tested with cooldown and reduced motion |
-| 5 | Validation PR Agent | read-only | Independent boundary and verification report | `Merge candidate` or clear blocker |
+| 5 | Asset QA Agent + Validation PR Agent | read-only unless assigned | Independent asset/runtime boundary and verification report | `Merge candidate` or clear blocker |
 
 ## PR Sequence
 
 1. `codex/silent-watch-agent-plan`: document no-voice doctrine, agent responsibilities, validation scan, and next-phase prompts.
-2. `codex/desktop-reliability-pass`: harden window behavior, recovery paths, and fullscreen/multi-display QA.
-3. `codex/silent-companion-ux`: add role mood map, intensity copy, and visual-only interaction model.
-4. `codex/fixture-mood-engine`: add fixture atmosphere events and reaction previews with tests.
-5. `codex/system-audio-atmosphere-spike`: local audio-feature spike only if privacy boundaries remain intact.
+2. `codex/art-asset-production-plan`: define the art-led production pipeline, role packs, prompt/review flow, and asset QA gates.
+3. `codex/desktop-reliability-pass`: harden window behavior, recovery paths, and fullscreen/multi-display QA.
+4. `codex/silent-companion-ux`: add role mood map, intensity copy, and visual-only interaction model.
+5. `codex/fixture-mood-engine`: add fixture atmosphere events and reaction previews with tests.
+6. `codex/system-audio-atmosphere-spike`: local audio-feature spike only if privacy boundaries remain intact.
 
 ## Non-Goals
 
