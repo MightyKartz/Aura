@@ -6,7 +6,7 @@
       "id": "cat-default-v1",
       "name": "默认小猫",
       "category": "default",
-      "description": "适合通用观影场景的暖白发光小猫角落挂件。",
+      "description": "暖白月光与奶油猫的高级通用款，适合大多数观影场景。",
       "match": {
         "keywords": []
       },
@@ -20,59 +20,142 @@
         "glow": "#ffcf5a"
       },
       "recommendedMode": "standard",
+      "motionPreset": "soft",
       "tags": ["默认", "通用", "柔和"]
     },
     {
       "id": "cat-suspense-v1",
-      "name": "悬疑猫",
+      "name": "悬疑侦探 · 黑猫",
       "category": "genre",
-      "description": "冷蓝、黄铜与轻雾感装饰，适合悬疑和刑侦题材。",
+      "description": "冷蓝月影、黄铜放大镜与黑猫侦探元素，适合悬疑和刑侦题材。",
       "match": {
         "keywords": ["悬疑", "刑侦", "犯罪", "探案", "推理", "悬", "疑", "谜", "罪", "案", "凶", "杀", "局", "警", "追", "诡", "夜"]
       },
       "assets": {
-        "topLeft": "themes/skin-suspense-top-left.svg",
-        "bottomRight": "themes/skin-suspense-bottom-right.svg"
+        "topLeft": "themes/skin-suspense-top-left.png",
+        "bottomRight": "themes/skin-suspense-bottom-right.png"
       },
       "palette": {
-        "primary": "#8bc0d8",
-        "accent": "#e3b56d",
-        "glow": "#8bb2d1"
+        "primary": "#6f9fbd",
+        "accent": "#c69a5c",
+        "glow": "#79b7d4"
       },
       "recommendedMode": "standard",
-      "tags": ["悬疑", "刑侦", "冷蓝", "雾感"]
+      "motionPreset": "watchful",
+      "tags": ["悬疑", "刑侦", "黑猫", "雨夜"]
     },
     {
-      "id": "cat-ancient-romance-v1",
-      "name": "古偶猫",
+      "id": "cat-rain-detective-v1",
+      "name": "雨夜悬疑 · 黑猫侦探",
       "category": "genre",
-      "description": "花瓣、流苏和暖金月华，适合古偶和古装题材。",
+      "description": "雨夜、线索卡、弯月和黑猫侦探元素，适合悬疑、探案和刑侦题材。",
       "match": {
-        "keywords": ["古装", "爱情", "古偶", "言情", "宫", "凤", "后", "王", "君", "令", "缘", "月", "华", "帝", "朝", "国", "天下", "将军", "盛世", "太平", "年", "花"]
+        "keywords": ["悬疑", "刑侦", "犯罪", "探案", "推理", "侦探", "黑猫", "雨夜", "线索", "案件", "迷雾", "谜案"]
       },
       "assets": {
-        "topLeft": "themes/skin-ancient-top-left.svg",
-        "bottomRight": "themes/skin-ancient-bottom-right.svg"
+        "topLeft": "themes/skin-rain-detective-top-left.png",
+        "bottomRight": "themes/skin-rain-detective-bottom-right.png"
       },
       "palette": {
-        "primary": "#f4d4e7",
-        "accent": "#f8c978",
-        "glow": "#f7d4dd"
+        "primary": "#6f9fbd",
+        "accent": "#c69a5c",
+        "glow": "#79b7d4"
       },
       "recommendedMode": "standard",
-      "tags": ["古偶", "古装", "花瓣", "金粉"]
+      "motionPreset": "detective-cat",
+      "tags": ["悬疑", "侦探", "黑猫", "雨夜"]
+    },
+    {
+      "id": "general-peach-guard-v1",
+      "name": "文人将军 · 桃林守望",
+      "category": "character",
+      "description": "Aura 原创文人将军 archetype 的热门剧气质映射试点，用桃枝、月影和守望感承接古装权谋观看氛围。",
+      "match": {
+        "keywords": ["古装", "权谋", "将军", "守望", "桃林", "宫墙", "家国", "月影", "桃枝", "文人"]
+      },
+      "assets": {
+        "topLeft": "themes/skin-peach-guard-top-left.png",
+        "bottomRight": "themes/skin-peach-guard-bottom-right.png"
+      },
+      "palette": {
+        "primary": "#2f4a58",
+        "accent": "#d2a062",
+        "glow": "#f3d7c7"
+      },
+      "recommendedMode": "standard",
+      "tags": ["权谋", "守望", "古风", "桃林"],
+      "characterTheme": {
+        "layer": "mapped",
+        "archetype": "ancient-general",
+        "themeName": "桃林守望",
+        "themeSlug": "peach-guard",
+        "topLeftAtmosphere": {
+          "motifs": ["桃枝", "月影"],
+          "semanticHint": "桃林守望"
+        },
+        "bottomRightCharacter": {
+          "role": "文人将军",
+          "pose": "半身守望",
+          "prop": "执杯"
+        },
+        "motionLanguage": {
+          "focus": "视线轻偏",
+          "accent": "披风边微动"
+        },
+        "microcopyTone": "restrained"
+      }
+    },
+    {
+      "id": "lady-moon-fan-v1",
+      "name": "古风贵女 · 月下执扇",
+      "category": "character",
+      "description": "Aura 原创贵女 archetype 的第二套正式人物主题，用半月、团扇和珠钗柔光承接古偶长线观看氛围。",
+      "match": {
+        "keywords": ["古偶", "贵女", "月下", "执扇", "花瓣", "流苏", "珠钗", "柔光", "半月", "团扇"]
+      },
+      "assets": {
+        "topLeft": "themes/skin-moon-fan-top-left.png",
+        "bottomRight": "themes/skin-moon-fan-bottom-right.png"
+      },
+      "palette": {
+        "primary": "#5b4d7a",
+        "accent": "#d9c0a8",
+        "glow": "#f3dff7"
+      },
+      "recommendedMode": "quiet",
+      "tags": ["古偶", "月下", "执扇", "柔光"],
+      "characterTheme": {
+        "layer": "mapped",
+        "archetype": "ancient-lady",
+        "themeName": "月下执扇",
+        "themeSlug": "moon-fan",
+        "topLeftAtmosphere": {
+          "motifs": ["半月", "扇纹"],
+          "semanticHint": "月下执扇"
+        },
+        "bottomRightCharacter": {
+          "role": "古风贵女",
+          "pose": "轻侧持扇",
+          "prop": "团扇"
+        },
+        "motionLanguage": {
+          "focus": "扇面微移",
+          "accent": "珠钗轻晃"
+        },
+        "microcopyTone": "gentle"
+      }
     },
     {
       "id": "cat-hotblood-v1",
       "name": "热血猫",
       "category": "genre",
-      "description": "橙红、速度线和跳跃能量，适合热血成长题材。",
+      "description": "赤焰、速度线与灵兽伙伴的高能主题，适合热血成长题材。",
       "match": {
         "keywords": ["热血", "青春", "成长", "运动", "战斗", "冒险", "燃", "战", "斗", "少年", "锋", "勇", "光", "队", "冠", "梦", "火"]
       },
       "assets": {
-        "topLeft": "themes/skin-hotblood-top-left.svg",
-        "bottomRight": "themes/skin-hotblood-bottom-right.svg"
+        "topLeft": "themes/skin-hotblood-top-left.png",
+        "bottomRight": "themes/skin-hotblood-bottom-right.png"
       },
       "palette": {
         "primary": "#ff9d63",
@@ -80,6 +163,7 @@
         "glow": "#ffb05b"
       },
       "recommendedMode": "lively",
+      "motionPreset": "energetic",
       "tags": ["热血", "成长", "活力", "能量"]
     }
   ]

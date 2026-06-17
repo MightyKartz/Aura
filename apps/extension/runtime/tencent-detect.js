@@ -58,16 +58,17 @@ function clamp(value, min, max) {
 
 export function isTencentPlaybackUrl(url = location.href) {
   const safeUrl = String(url || '');
-  if (!/^https:\/\/v\.qq\.com\//i.test(safeUrl)) return false;
 
   try {
     const parsed = new URL(safeUrl);
+    if (parsed.protocol !== 'https:' || parsed.hostname !== 'v.qq.com') return false;
     const pathname = parsed.pathname || '';
     return /\/x\/(cover|page)\//i.test(pathname)
       || /[?&](vid|cid)=/i.test(parsed.search || '')
       || /\/txp\/iframe-player\.html/i.test(pathname);
   } catch {
-    return /\/x\/(cover|page)\//i.test(safeUrl) || /[?&](vid|cid)=/i.test(safeUrl);
+    return /^https:\/\/v\.qq\.com(?::\d+)?\//i.test(safeUrl)
+      && (/\/x\/(cover|page)\//i.test(safeUrl) || /[?&](vid|cid)=/i.test(safeUrl));
   }
 }
 
@@ -181,7 +182,7 @@ function scoreContainerCandidate(element, candidate, activeContainer) {
   return score;
 }
 
-export function createTencentDetector({ getActiveContainer, getLastPointerAt } = {}) {
+export function createTencentDetector({ getActiveContainer } = {}) {
   return {
     extractShowTitle() {
       const candidates = collectFirstTexts(TITLE_SELECTORS, 4, (text) => text.length >= 2 && text.length <= 48);
@@ -350,9 +351,6 @@ export function createTencentDetector({ getActiveContainer, getLastPointerAt } =
     },
 
     shouldLiftForControls(container, video) {
-      const hasRecentPointer = Date.now() - (getLastPointerAt?.() ?? 0) < 1500;
-      if (hasRecentPointer) return true;
-
       const hasPausedVideo = Boolean(video instanceof HTMLVideoElement && video.paused && video.currentTime > 0);
       if (hasPausedVideo) return true;
 

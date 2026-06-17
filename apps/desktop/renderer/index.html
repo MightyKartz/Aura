@@ -1,0 +1,30 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Aura</title>
+    <link rel="stylesheet" href="./styles.css" />
+  </head>
+  <body>
+    <main class="companion-shell" data-motion="breathe" data-mood="idle">
+      <section class="companion-stage" aria-label="Aura">
+        <div class="aura-halo" aria-hidden="true"></div>
+        <img class="aura-companion" data-companion-image alt="" />
+        <div class="aura-atmosphere" aria-hidden="true">
+          <span></span>
+          <span></span>
+          <span></span>
+        </div>
+      </section>
+      <nav class="companion-controls" aria-label="Aura controls">
+        <button type="button" data-action="skin" title="换肤" aria-label="换肤">◐</button>
+        <button type="button" data-action="intensity" title="强度" aria-label="强度">◎</button>
+        <button type="button" data-action="reaction" title="反应" aria-label="反应">✦</button>
+        <button type="button" data-action="click-through" title="穿透" aria-label="穿透">⌁</button>
+        <button type="button" data-action="hide" title="隐藏" aria-label="隐藏">×</button>
+      </nav>
+    </main>
+    <script type="module" src="./app.js"></script>
+  </body>
+</html>

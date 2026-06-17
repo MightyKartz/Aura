@@ -1,10 +1,14 @@
 export const STORAGE_KEY = 'aura:mvp:settings';
 
+export const SIZE_SCALE_MIN = 0.85;
+export const SIZE_SCALE_MAX = 1.25;
+
 export const DEFAULT_SETTINGS = Object.freeze({
   enabled: true,
   mode: 'standard',
   themeMode: 'auto',
-  selectedSkinId: ''
+  selectedSkinId: '',
+  sizeScale: 1
 });
 
 export const LEGACY_SKIN_MAP = Object.freeze({
@@ -19,6 +23,13 @@ export function intensityToMode(value) {
   if (numeric < 35) return 'quiet';
   if (numeric < 70) return 'standard';
   return 'lively';
+}
+
+export function normalizeSizeScale(value) {
+  const numeric = Number(value);
+  if (!Number.isFinite(numeric)) return DEFAULT_SETTINGS.sizeScale;
+  const clamped = Math.min(SIZE_SCALE_MAX, Math.max(SIZE_SCALE_MIN, numeric));
+  return Math.round(clamped * 100) / 100;
 }
 
 export function normalizeSettings(raw = {}) {
@@ -36,7 +47,8 @@ export function normalizeSettings(raw = {}) {
       : selectedSkinId
         ? 'manual'
         : 'auto',
-    selectedSkinId
+    selectedSkinId,
+    sizeScale: normalizeSizeScale(raw.sizeScale)
   };
 }
 
