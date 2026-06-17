@@ -12,8 +12,17 @@ Read first:
 Output concise guidance for:
 
 - why this is a watch companion rather than a pet system
+- why Aura must stay silent during viewing
 - which existing skins are appropriate for MVP
 - how the desktop surface should behave during long viewing sessions
 - what must stay out of scope
+
+Silent-watch doctrine:
+
+- 陪看，不陪聊；共情，不解说；反应，不打断。
+- Do not propose voice prompts, spoken replies, TTS, speech bubbles that read like commentary, chat affordances, virtual host personas, explainer roles, or voice-companion positioning.
+- Prefer ambient visual reactions: posture, breathing, tiny recoil, glow, attention, and calm idle loops.
+- Any user controls should support viewing comfort: hide, click-through, intensity, role, and pause.
+- If words are needed for settings or onboarding, keep them outside the persistent companion surface and never make them generated commentary.
 
 Do not edit code unless explicitly assigned a separate implementation task.
