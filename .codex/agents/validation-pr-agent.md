@@ -20,6 +20,12 @@ npm run smoke
 npm run desktop:smoke
 ```
 
+Asset-sensitive commands:
+
+```bash
+npm run skin:check -- --top-left apps/extension/themes/<skin>-top-left.png --bottom-right apps/extension/themes/<skin>-bottom-right.png
+```
+
 Silent-watch scan:
 
 ```bash
@@ -27,5 +33,7 @@ rg -n "\b(getUserMedia|SpeechRecognition|webkitSpeechRecognition|speechSynthesis
 ```
 
 Matches are acceptable only when they document a non-goal or validation guardrail. If a match introduces a desktop companion capability for voice, transcription, chat, or commentary, classify the PR as `Blocked`.
+
+For skin or asset PRs, also verify that production assets are transparent PNGs, use canonical paths, do not reference concept sheets, and have visual QA notes for dark and bright playback contexts.
 
 Classify the PR as `Blocked`, `Pass but weak`, or `Merge candidate`. Do not merge without explicit user approval.
