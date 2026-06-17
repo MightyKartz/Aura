@@ -47,6 +47,7 @@ Each role pack must include:
 | --- | --- | --- |
 | Orchestrator | integration, branch, PR, validation | scoped PR and validation handoff |
 | Product Design Agent | viewing experience and role strategy | prioritized role packs and low-distraction rules |
+| Role Pack Brief Agent | role-pack source of truth | V1 briefs, prompt pairs, motion notes, and review criteria |
 | Art Production Agent | art briefs, prompts, candidate review | two-slot prompt packs and review notes |
 | Asset QA Agent | runtime asset readiness | transparency/readability/path QA |
 | Desktop Shell Agent | desktop preview and placement | evidence that assets do not block playback |
@@ -66,7 +67,7 @@ Ship fewer packs if quality is weak. A single excellent default pack is more val
 ## PR Ladder
 
 1. `codex/art-asset-production-plan`: document art-led pipeline, agents, role packs, validation, and reusable prompt.
-2. `codex/role-pack-briefs-v1`: add detailed briefs and generation prompts for the first 3 role packs.
+2. `codex/role-pack-briefs-v1-plan`: add detailed briefs and generation prompts for the first 3 role packs.
 3. `codex/asset-candidate-review-v1`: review generated candidates, pick winners, and record revise/reject rationale.
 4. `codex/runtime-asset-integration-v1`: integrate approved PNGs using canonical paths and registry updates.
 5. `codex/asset-visual-qa-v1`: add Skin Studio and desktop visual evidence for dark/bright/fullscreen/compact cases.

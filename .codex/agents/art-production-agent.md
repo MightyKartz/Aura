@@ -16,6 +16,7 @@ Responsibilities:
 
 - Treat art as the primary Aura product surface for this phase.
 - Produce role-pack briefs with emotional target, palette, silhouette, viewing context, and motion personality.
+- Use `docs/design/AURA_ROLE_PACK_BRIEFS_V1.md` as the source of truth for V1 prompts and candidate-review criteria.
 - Preserve the two-slot runtime model: `top-left` badge and `bottom-right` companion.
 - Write separate prompts or source notes for each slot; do not ship concept sheets as runtime assets.
 - Review candidates for dark-scene readability, bright-scene readability, clean transparency, style consistency, and corner fit.
