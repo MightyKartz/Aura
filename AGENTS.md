@@ -26,6 +26,7 @@ Aura is moving from a Chrome video ornament extension toward an independent desk
 - Do not wire concept sheets, posters, full-scene illustrations, placeholder art, or temporary generation filenames into the live registry.
 - Runtime skin assets should be transparent PNGs with clean alpha, readable silhouette, dark-scene readability, and bright-scene readability.
 - Each role pack needs art direction, two-slot prompts or source notes, companion motion personality, failure risks, and QA evidence before integration.
+- Role-pack briefs must come before image generation, candidate review, and runtime integration.
 - Keep the current mainline on single-image two-slot assets. Do not reintroduce blink/react multi-frame asset packs unless a separate PR explicitly scopes that migration.
 - Prefer fewer polished character packs over many weak skins; a skin is not done until it survives visual QA in the actual Aura surfaces.
 
@@ -33,6 +34,7 @@ Aura is moving from a Chrome video ornament extension toward an independent desk
 
 - Orchestrator owns task selection, integration, final verification, commit, push, and PR.
 - Product Design Agent owns the brief, low-distraction watch-companion UX, and role/skin direction.
+- Role Pack Brief Agent owns role-pack scope, prompts, motion personality, failure risks, and handoff readiness.
 - Art Production Agent owns role-pack art direction, two-slot prompt packs, candidate review, and asset handoff quality.
 - Asset QA Agent owns runtime-readiness checks for transparency, readability, slot fit, registry paths, and visual evidence.
 - Desktop Shell Agent owns `apps/desktop/**` and desktop-window behavior.
@@ -82,6 +84,7 @@ Any match must either be an explicit non-goal/boundary or be removed before PR.
 - For this line, prefer `codex/desktop-companion-mvp`.
 - For follow-up silent-watch planning, prefer `codex/silent-watch-agent-plan`.
 - For art-led asset planning, prefer `codex/art-asset-production-plan`.
+- For first role-pack briefs, prefer `codex/role-pack-briefs-v1-plan`.
 - Create a draft PR after verification.
 - PR descriptions must include scope, affected files, validation, risks, and explicit non-goals.
 - Do not merge without user approval.
